@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Planning Réception IN/OUT — GXO Lagny</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6f9; --panel:#ffffff; --panel2:#fbfcfe; --ink:#1b2430; --muted:#6b7785; --line:#e3e8ef;
+    --accent:#0b4f8a; --accent-soft:#e8f1fb;
+    --np-bg:#ffffff; --np-bd:#cfd6df; --np-ink:#6b7785;
+    --attente-bg:#fff4cc; --attente-bd:#e8c44d; --attente-ink:#7a5b00;
+    --cours-bg:#dbeafe;  --cours-bd:#5b9bd5;  --cours-ink:#0b4f8a;
+    --termine-bg:#d6f3e0;--termine-bd:#3fae6f;--termine-ink:#0f5f37;
+    --shadow:0 1px 2px rgba(16,30,54,.06),0 4px 16px rgba(16,30,54,.06);
+    --radius:12px;
+  }
+  [data-theme="dark"]{
+    --bg:#0f141b; --panel:#1a212b; --panel2:#202836; --ink:#e7edf4; --muted:#93a1b2; --line:#2a3543;
+    --accent:#4f9bea; --accent-soft:#16263a;
+    --np-bg:#1a212b; --np-bd:#3a4554; --np-ink:#93a1b2;
+    --attente-bg:#3a3210; --attente-bd:#b8932a; --attente-ink:#f0d77a;
+    --cours-bg:#15304f;  --cours-bd:#4f9bea;  --cours-ink:#aacdf5;
+    --termine-bg:#143524;--termine-bd:#3fae6f;--termine-ink:#86e3ad;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;-webkit-text-size-adjust:100%}
+  header{position:sticky;top:0;z-index:40;background:var(--panel);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+  .topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#0a3a66);
+    color:#fff;display:grid;place-items:center;font-weight:900;font-size:13px}
+  .brand small{display:block;font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.4px}
+  .spacer{flex:1}
+  .who{font-size:12px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:6px}
+  .who .badge{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 9px;font-size:11px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
+  .seg button{border:0;background:transparent;color:var(--muted);padding:8px 14px;cursor:pointer;font-weight:700;font-size:13px}
+  .seg button.on{background:var(--accent);color:#fff}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;border-radius:9px;
+    cursor:pointer;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:#c0392b;border-color:#e6b0aa}
+  .icon{width:36px;justify-content:center;padding:8px}
+  input,select{font-family:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+  input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+
+  .toolbar{display:flex;gap:10px;align-items:center;padding:10px 16px;flex-wrap:wrap;border-top:1px solid var(--line)}
+  .field{display:flex;flex-direction:column;gap:3px}
+  .field label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+  .search{flex:1;min-width:160px}
+  .stats{display:flex;gap:8px;flex-wrap:wrap}
+  .stat{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer;user-select:none;background:var(--panel)}
+  .stat .dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+  .stat.np .dot{background:var(--np-bg)}
+  .stat.attente .dot{background:var(--attente-bd)}
+  .stat.cours .dot{background:var(--cours-bd)}
+  .stat.termine .dot{background:var(--termine-bd)}
+  .stat.total .dot{background:var(--muted)}
+  .stat.dim{opacity:.4}
+  .stat b{font-variant-numeric:tabular-nums}
+
+  main{padding:14px 16px 80px}
+  .legendrow{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px;gap:10px;flex-wrap:wrap}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+  .legend .sw{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.15)}
+
+  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
+  table{width:100%;border-collapse:collapse;min-width:920px}
+  thead th{position:sticky;top:0;background:var(--panel);z-index:5;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:11px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+  tbody td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tbody tr td:first-child{font-weight:800;font-variant-numeric:tabular-nums}
+  .rdv{font-weight:800;font-variant-numeric:tabular-nums;font-size:15px}
+  .cr{color:var(--muted);font-size:12.5px;max-width:230px}
+  .dest{font-weight:600}
+  .grpcode{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+
+  tr.nonpresente{background:var(--np-bg)}
+  tr.attente{background:var(--attente-bg)}
+  tr.cours{background:var(--cours-bg)}
+  tr.termine{background:var(--termine-bg)}
+  tr td.statecell{border-left:4px solid transparent}
+  tr.nonpresente td.statecell{border-left-color:var(--np-bd)}
+  tr.attente td.statecell{border-left-color:var(--attente-bd)}
+  tr.cours td.statecell{border-left-color:var(--cours-bd)}
+  tr.termine td.statecell{border-left-color:var(--termine-bd)}
+
+  tr.grp td.statecell{box-shadow:inset 6px 0 0 -2px var(--grail)}
+  .grpbadge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;color:#fff;border-radius:6px;padding:2px 7px;margin-left:8px;vertical-align:middle;letter-spacing:.3px}
+
+  .timecell input{width:78px;text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
+  .quaicell input{width:62px;text-align:center;font-weight:700}
+  .stamp{display:inline-flex;gap:4px}
+  .stamp button{border:1px solid var(--line);background:var(--panel);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:13px;display:grid;place-items:center;font-weight:800;color:var(--accent)}
+  .stamp button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .statesel{border-radius:8px;font-weight:700;padding:6px 8px}
+
+  .ro{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  td.mirror{opacity:.72;font-style:italic}
+  td.mirror .ro{font-weight:600}
+  .cmpsec{font-weight:800;text-align:center;color:var(--ink);width:30px;background:var(--panel2);position:sticky;left:0;z-index:2}
+  .cmpsec span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;letter-spacing:1px}
+  .cmpslot{text-align:center;font-weight:800;color:var(--muted);width:34px;background:var(--panel2);position:sticky;left:30px;z-index:2}
+  .cmphr{font-size:11px;white-space:nowrap;text-align:center;background:var(--panel2)}
+  .cmpcell{font-size:11px;white-space:nowrap;text-align:center;min-width:104px;border:1px solid var(--line);color:var(--ink);font-weight:600}
+  .cmprow.recep .cmpslot{box-shadow:inset 4px 0 0 var(--termine-bd)}
+  .cmprow.exped .cmpslot{box-shadow:inset 4px 0 0 var(--cours-bd)}
+  .cmpcell.attente{background:var(--attente-bg)}
+  .cmpcell.cours{background:var(--cours-bg)}
+  .cmpcell.termine{background:var(--termine-bg)}
+  .cmpcell.has{outline:1px solid var(--line)}
+  .ro.empty{color:var(--muted);font-weight:500}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  .pill.nonpresente{background:var(--np-bg);color:var(--np-ink);border:1px solid var(--np-bd)}
+  .pill.attente{background:var(--attente-bg);color:var(--attente-ink);border:1px solid var(--attente-bd)}
+  .pill.cours{background:var(--cours-bg);color:var(--cours-ink);border:1px solid var(--cours-bd)}
+  .pill.termine{background:var(--termine-bg);color:var(--termine-ink);border:1px solid var(--termine-bd)}
+
+  .empty-state{padding:60px 20px;text-align:center;color:var(--muted)}
+  .empty-state h2{color:var(--ink);margin:0 0 6px}
+
+  .overlay{position:fixed;inset:0;background:rgba(8,14,22,.6);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto}
+  .overlay.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:720px;padding:22px}
+  .modal.wide{max-width:1000px}
+  .modal h3{margin:0 0 4px}
+  .modal p{color:var(--muted);margin:0 0 16px}
+  textarea{width:100%;min-height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg);color:var(--ink);resize:vertical}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+  .hint{font-size:12px;color:var(--muted);background:var(--accent-soft);border-radius:10px;padding:10px 12px;margin-top:12px}
+  .row2{display:flex;gap:10px;flex-wrap:wrap}
+  .row2>*{flex:1;min-width:150px}
+
+  .clientbanner{background:linear-gradient(135deg,var(--accent),#072c4f);color:#fff;padding:8px 16px;font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:10px;letter-spacing:.3px}
+  .live-dot{width:9px;height:9px;border-radius:50%;background:#5bd17f;animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(91,209,127,.6)}70%{box-shadow:0 0 0 8px rgba(91,209,127,0)}100%{box-shadow:0 0 0 0 rgba(91,209,127,0)}}
+
+  .sync-state{font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+  .sync-state .d{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .sync-state.on .d{background:#3fae6f}
+  .sync-state.local .d{background:#e8c44d}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:800}
+  .card .v{font-size:28px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums}
+  .card .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .card.good .v{color:#2a9c68}.card.warn .v{color:#c79a16}.card.bad .v{color:#c0392b}
+  .dashtable{width:100%;border-collapse:collapse;margin-bottom:18px;min-width:560px}
+  .dashtable th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:800;padding:8px 10px;border-bottom:2px solid var(--line)}
+  .dashtable td{padding:9px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-weight:600}
+  .dashtable td.lbl{font-weight:800}
+  .rate{display:inline-block;min-width:46px;text-align:center;border-radius:7px;padding:3px 8px;font-weight:800;font-size:12px}
+  .rate.g{background:var(--termine-bg);color:var(--termine-ink)}
+  .rate.w{background:var(--attente-bg);color:var(--attente-ink)}
+  .rate.b{background:#f8d7da;color:#922}
+  .rate.n{background:var(--bg);color:var(--muted)}
+  .delay-pos{color:#c0392b;font-weight:800}.delay-neg{color:#2a9c68;font-weight:800}
+  .dashsection{font-size:13px;font-weight:800;margin:6px 0 10px;letter-spacing:.2px}
+  .scroll{overflow:auto}
+
+  .userlist{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+  .userlist .u{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .userlist .u:last-child{border-bottom:0}
+  .urole{font-size:10px;font-weight:800;text-transform:uppercase;border-radius:6px;padding:2px 8px;letter-spacing:.4px}
+  .urole.exploitation{background:var(--accent-soft);color:var(--accent)}
+  .urole.client{background:var(--termine-bg);color:var(--termine-ink)}
+
+  .authbox{max-width:420px;text-align:center}
+  .authbox .logo{width:54px;height:54px;font-size:18px;border-radius:14px;margin:0 auto 14px}
+  .authbox input{text-align:center;font-size:18px;letter-spacing:3px;font-weight:800;padding:12px;width:100%}
+  .err{color:#c0392b;font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px}
+
+  @media(max-width:640px){
+    .topbar{padding:8px 10px}.brand small{display:none}
+    main{padding:10px 8px 80px}.toolbar{padding:8px 10px}.timecell input{width:64px}
+  }
+  @media print{
+    header .toolbar,.stamp,.seg,.btn,.legend,.overlay,.clientbanner .live-dot,.who{display:none!important}
+    body{background:#fff}.tablewrap{box-shadow:none;border:none}
+    tr.attente{background:#fff4cc!important}tr.cours{background:#dbeafe!important}tr.termine{background:#d6f3e0!important}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand"><div class="logo">GXO</div>
+      <div>Planning Réception IN/OUT<small>Lagny-le-Sec — suivi temps réel</small></div></div>
+    <div class="spacer"></div>
+    <span class="who" id="who"></span>
+    <span id="syncState" class="sync-state local"><span class="d"></span>Local</span>
+    <div class="seg" id="fluxSeg" style="margin-right:6px">
+      <button data-flux="in">📥 Réception IN</button>
+      <button data-flux="out" class="on">📤 Expédition OUT</button>
+      <button data-flux="cmp">🗓 Compilé</button></div>
+    <div class="seg" id="modeSeg">
+      <button data-mode="exploitation" class="on">Exploitation</button>
+      <button data-mode="client">Vue client</button></div>
+    <button class="btn icon ghost" id="themeBtn" title="Thème clair / sombre">🌙</button>
+    <button class="btn icon ghost" id="logoutBtn" title="Déconnexion">⏻</button>
+  </div>
+  <div class="toolbar" id="toolbar">
+    <div class="field"><label>Date du planning</label><input type="date" id="dateInput"></div>
+    <div class="field search"><label>Recherche</label><input type="text" id="searchInput" placeholder="Départ, transporteur, destinataire…"></div>
+    <div class="field"><label id="filterLabel">Transporteur</label><select id="transpFilter"><option value="">Tous</option></select></div>
+    <div class="stats" id="stats"></div>
+    <div class="spacer"></div>
+    <button class="btn primary" id="dashBtn">📊 Dashboard</button>
+    <button class="btn" id="importBtn">⬆ Importer</button>
+    <button class="btn" id="crBtn">🏷️ CR client</button>
+    <button class="btn" id="exportBtn">⬇ Export</button>
+    <button class="btn" id="printBtn">🖨</button>
+    <button class="btn" id="usersBtn">👤 Utilisateurs</button>
+    <button class="btn" id="syncBtn">🔗 Sync</button>
+  </div>
+</header>
+
+<div class="clientbanner" id="clientBanner" style="display:none">
+  <span class="live-dot"></span> Suivi en temps réel — Planning de réception · <span id="clientDate"></span>
+  <span class="spacer"></span>
+  <span style="font-weight:600;opacity:.85">MAJ : <span id="lastUpdate">—</span></span>
+</div>
+
+<main>
+  <div class="legendrow">
+    <div class="legend">
+      <span><span class="sw" style="background:var(--np-bg)"></span>Blanc — Non présenté</span>
+      <span><span class="sw" style="background:var(--attente-bg);border-color:var(--attente-bd)"></span>Jaune — En attente</span>
+      <span><span class="sw" style="background:var(--cours-bg);border-color:var(--cours-bd)"></span>Bleu — En cours</span>
+      <span><span class="sw" style="background:var(--termine-bg);border-color:var(--termine-bd)"></span>Vert — Terminé</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted)" id="countLine"></div>
+  </div>
+  <div class="tablewrap"><table id="grid"><thead><tr id="head"></tr></thead><tbody id="body"></tbody></table></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <h2>Aucun départ pour cette date</h2>
+    <p>Importe ta base Excel du jour (J) pour générer le planning de J+1.</p>
+    <button class="btn primary" id="emptyImport">⬆ Importer la base</button>
+  </div>
+</main>
+
+<div class="overlay" id="setupModal"><div class="modal authbox">
+  <div class="logo">GXO</div><h3>Première configuration</h3>
+  <p>Crée le premier compte <b>Exploitation</b> (administrateur). Tu pourras ensuite ajouter d'autres comptes exploitation et client.</p>
+  <div class="row2" style="margin-bottom:10px"><input id="setupLabel" placeholder="Nom (ex: Mickael)"><input id="setupCode" placeholder="Code d'accès" type="password"></div>
+  <div class="err" id="setupErr"></div>
+  <div class="modal-actions"><button class="btn primary" id="setupSave">Créer le compte</button></div>
+</div></div>
+
+<div class="overlay" id="loginModal"><div class="modal authbox">
+  <div class="logo">GXO</div><h3>Planning Réception IN/OUT</h3>
+  <p>Saisis ton code d'accès.</p>
+  <input id="loginCode" placeholder="• • • •" type="password" autocomplete="off">
+  <div class="err" id="loginErr"></div>
+  <div class="modal-actions" style="justify-content:center"><button class="btn primary" id="loginBtn" style="min-width:160px">Entrer</button></div>
+</div></div>
+
+<div class="overlay" id="importModal"><div class="modal">
+  <h3 id="importTitle">Importer la base du jour</h3>
+  <p id="importDesc">Colle les lignes copiées depuis Excel (en-têtes inclus) ou charge le fichier .xlsx.</p>
+  <div class="row2" style="margin-bottom:12px">
+    <button class="btn" id="fileBtn">📂 Choisir un fichier .xlsx</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+    <div class="field"><label>Date cible du planning</label><input type="date" id="importDate"></div>
+  </div>
+  <textarea id="pasteArea" placeholder="Colle ici (en-têtes inclus). Formats reconnus : export complet (N° Departure…) ou format client (DEPARTURE / RDV / …)"></textarea>
+  <div class="hint" id="importHint"><b>Quai, Heure Arrivée, Heure charg, Heure Départ</b> restent vides → statut « Non présenté » (ligne blanche). Une ré-importation conserve les saisies (matching Départ + RDV + Destinataire).</div>
+  <div class="modal-actions">
+    <label style="display:flex;align-items:center;gap:7px;margin-right:auto;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="replaceChk"> Remplacer entièrement</label>
+    <button class="btn ghost" data-close>Annuler</button>
+    <button class="btn primary" id="doImport">Importer</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="dashModal"><div class="modal wide">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <h3 style="margin:0">📊 Dashboard ponctualité</h3>
+    <span style="color:var(--muted);font-size:12.5px" id="dashDate"></span>
+    <span class="spacer" style="flex:1"></span>
+    <div class="field" style="flex-direction:row;align-items:center;gap:8px">
+      <label style="white-space:nowrap">Tolérance (min)</label>
+      <input type="number" id="tolInput" value="15" min="0" max="120" style="width:70px">
+    </div>
+    <button class="btn ghost" data-close>Fermer</button>
+  </div>
+  <p id="dashIntro">Respect des heures = heure réelle ≤ RDV + tolérance. Les groupages comptent pour 1 camion.</p>
+  <div class="cards" id="dashCards"></div>
+  <div class="dashsection" id="dashSec1">Par type de départ (DB / DW)</div>
+  <div class="scroll"><table class="dashtable" id="dashByType"></table></div>
+  <div class="dashsection" id="dashSec2">Par transporteur</div>
+  <div class="scroll"><table class="dashtable" id="dashByTransp"></table></div>
+  <div class="modal-actions"><button class="btn" id="dashExport">⬇ Exporter le dashboard</button></div>
+</div></div>
+
+<div class="overlay" id="usersModal"><div class="modal">
+  <h3>Gestion des accès</h3>
+  <p>Les comptes <b>Exploitation</b> peuvent saisir et tout administrer. Les comptes <b>Client</b> ouvrent uniquement la vue consultation (aucun accès exploitation).</p>
+  <div class="userlist" id="userList"></div>
+  <div class="dashsection">Ajouter un compte</div>
+  <div class="row2" style="margin-bottom:8px">
+    <input id="nuLabel" placeholder="Nom / société">
+    <input id="nuCode" placeholder="Code d'accès" type="text">
+    <select id="nuRole"><option value="exploitation">Exploitation</option><option value="client">Client</option></select>
+    <button class="btn primary" id="nuAdd">Ajouter</button>
+  </div>
+  <div class="err" id="usersErr"></div>
+  <div class="hint">Sécurité : contrôle d'accès par code (interne). Les codes ne sont pas stockés en clair mais ce n'est pas du chiffrement fort — pour un niveau bancaire il faudrait Firebase Auth.</div>
+  <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button></div>
+</div></div>
+
+<div class="overlay" id="crModal"><div class="modal">
+  <h3>🏷️ Réglages CR client</h3>
+  <p>Les <b>CR client</b> sont rattachés au <b>code destinataire</b> (colonne L du fichier OUT). À chaque import, la colonne CR client se remplit automatiquement à partir de cette base. La base GXO BP destinataire est préchargée — modifie / ajoute / supprime quand un CR évolue.</p>
+  <div class="dashsection" style="display:flex;align-items:center;gap:10px">Code destinataire → CR client <span class="spacer" style="flex:1"></span><span id="crCount" style="font-size:11px;color:var(--muted);font-weight:600"></span><button class="btn ghost" id="crReload" style="font-size:11px">↻ Recharger la base</button></div>
+  <div class="userlist" id="crList" style="max-height:46vh;overflow:auto"></div>
+  <div class="dashsection">Ajouter / modifier un CR</div>
+  <div class="row2" style="margin-bottom:8px">
+    <input id="crNewCode" placeholder="Code destinataire (ex: 0007096938)">
+    <input id="crNewLbl" placeholder="CR client (ex: CHARGEMENT EN FOULEE)" style="flex:2">
+    <button class="btn primary" id="crAdd">Enregistrer</button>
+  </div>
+  <div class="err" id="crErr"></div>
+  <div class="hint">Astuce : tu peux aussi modifier le CR directement dans une ligne du planning — c'est mémorisé pour ce code destinataire et appliqué à tous ses départs. Plusieurs commentaires d'un même code sont fusionnés (séparés par « — »).</div>
+  <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button></div>
+</div></div>
+
+<div class="overlay" id="syncModal"><div class="modal">
+  <h3>Diffusion temps réel — multiviewer</h3>
+  <p>localStorage est propre à chaque navigateur : un simple fichier envoyé par mail ne se synchronise pas. Pour que tes collègues / le client voient tes mises à jour en direct, branche une base Firebase (gratuite) — la config voyage ensuite avec le lien ou le fichier client.</p>
+  <p style="color:var(--ink);font-weight:700;margin-bottom:8px">Firebase Realtime Database</p>
+  <div class="row2" style="margin-bottom:10px"><input id="fbUrl" placeholder="databaseURL — https://xxxx.firebaseio.com"><input id="fbKey" placeholder="apiKey"></div>
+  <div class="row2" style="margin-bottom:10px"><input id="fbProj" placeholder="projectId"><input id="fbApp" placeholder="appId (optionnel)"></div>
+  <div class="hint" style="margin-top:0"><b>Pour partager (au choix) :</b> ① héberge ce fichier une fois (GitHub Pages / intranet) puis <b>« Copier le lien multiviewer »</b> : tout le monde ouvre le même lien et voit le live (le client se connecte avec son code). ② ou <b>« Fichier client à héberger »</b> : copie autonome avec la config intégrée.</div>
+  <div class="modal-actions">
+    <button class="btn" id="linkCopy" style="margin-right:auto">🔗 Copier le lien multiviewer</button>
+    <button class="btn" id="fbBuild">⬇ Fichier client</button>
+    <button class="btn ghost" id="fbDisable">Désactiver</button>
+    <button class="btn ghost" data-close>Fermer</button>
+    <button class="btn primary" id="fbSave">Activer la sync</button>
+  </div>
+</div></div>
+
+<script>
+const LS='gxo_planning_inout_v2', LS_FB='gxo_planning_fb_v2', LS_SESS='gxo_planning_sess_v2';
+const STATUSES={nonpresente:'Non présenté',attente:'En attente',cours:'En cours',termine:'Terminé'};
+const GRAIL=['#0b4f8a','#7a3fae','#0f8a6e','#b8632a','#a8336b','#3a6ea5','#7a8a0f'];
+/* Base CR client préchargée (code destinataire colonne L -> CR). Source: extraction Données de Base BP destinataire. */
+const DEFAULT_CRMAP={"1917369":"PREP PAL","1968911":"PREP PAL","2059448":"PREP PAL dg 05/10/2018","2088369":"PALETTES CERCLEES ET FILMEES","3300806":"PALETTES CERCLEES ET FILMEES","3385691":"REFILMER PAL 80*120","3451403":"PREP PALETTES","3458077":"PALETTES CERCLEES ET FILMEES","3478522":"PREP PAL","4313247":"1 COLIS 1 SUPPORT JUNG +surcollage","6053137":"PALETTE CERCLEES ET FILMEES","6212256":"PALETTES CERCLEES ET FILMEES","6280792":"PREP PAL","7394758":"PREP PALETTES","7398006":"SUR PALETTES / FILMAGE MEME SI CERCLAGE","9223778":"PREP PAL + MONO REF","9223779":"PREP PALETTE + MONO REF","9223811":"SUR PALETTES + MONO REF","9223812":"PREP PALETTES + MONO REF","9338220":"PALETTES CERCLEES ET FILMEES","0S413":"PHOTO DEBUT MILLIEU FIN","0001410228":"1.80 M MAXI","0001438542":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0001454250":"PREP  PAL","0001460204":"PREP PAL","0001488290":"PREPARATION SUR PALETTE SK LE 040226","000149449":"PALETTE MONO REF 1M80 MAXI","0001494494":"palette mono ref hauteur max 1m70 sk le 211217","0001495706":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001495743":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001496150":"MONO REF sk le 19/10/17 suite mail TC — PREPARATION SUR PALETTE SK LE 040226","0001892895":"PREPARATION SUR PALETTE SK LE 040226","0001900673":"PREP PAL DG 25102019","0001968911":"PREPARATION SUR PALETTE SK LE 040226","0001969835":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0001982266":"chargement RAIL/ROUTE","0002012285":"PREPARATION SUR PALETTE SK LE 040226","0002012957":"MONO REF 1m80 MAXI","0002013994":"HAUTEUR 1M80 A RESPECTER POUR TOUTES LES REFS SAUF POUR LES 55' — (32\"/43\"/58\"/60\"/65\"/70\"/75\")-CHARGEMENT EN FOULEE","0002014466":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0002021829":"PREP PAL DG251019","0002023193":"HAUTEUR MAX 1,80m SAUF TELE / 1 REF PAR PALETTE — MONO REF","0002024058":"Palette mono référence - Hauteur maximum 1,60m — sur 80*120 ou 100*120 mail taj 161018","0002025772":"les 43' sont imperativement sur 2 couches","0002059448":"PREPARATION SUR PALETTE SK LE 040226","0002074403":"Hauteur maximum 1.80m","0002074404":"Hauteur maximum 1.80m","0002074447":"Hauteur maximum 2,20m","0002079873":"CHARGEMENT EN FOULEE","0002081082":"Palette mono référence - Hauteur maximum 2m","0002081932":"Hauteur maximum 1,80m","0002082543":"Palette mono référence - Hauteur maximum 1,80m","0002082724":"Hauteur maximum 1,80m","0002083548":"Lettre de voiture au BL","0002084979":"Hauteur maximum 1,30m","0002091143":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0002091488":"Palette mono référence","0002247972":"HAUTEUR MAX 1M80 TAJ LE 250718 sur AUDIO VIDEO","0002261256":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE","0002261259":"FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0002261280":"sur palettes 1.80M maxi MONO REF palettes cerclée sont à FILMER — DG 14/11/18 — 1M80 MAXI SUR LES BARRES DE SON-CHARGEMENT EN FOULEE","0002261289":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE — RAJOUTER INTERCALAIRE POUR SEPARER LES REFS DDE TAJ DU 160523","0002261332":"mono ref pour le brun sk le 180920","0002332826":"PREPARATION SUR PALETTE SK LE 040226","0002333762":"MONO REF","0002334922":"PREPARATION SUR PALETTE SK LE 040226 — Hauteur 2m20 max suite mail justin 130819","0002337062":"palette mono ref hauteur 2m30 maxi mail justin 30/11/18","0002337065":"hauteur 2m20 max suite demande justin 130819","0002353770":"PREPARATION SUR PALETTE SK LE 040226","0002354199":"CHARGEMENT EN FOULEE","0002412403":"Lettre de voiture au BL","0002413184":"PREPARATION SUR PALETTE 1.80M MAX SK LE 040226","0002437040":"HAUTEUR PALETTE 2M MAX suite mail justin 180122","0002445640":"MONO REF","0002472625":"MONO REF dg 2020","0002474775":"2M MAXI Mno Ref DG 06082020","0002493367":"CHARGEMENT EN FOULEE","0003145385":"hauteur max 1m60","0003149230":"1.80 MAXI","0003158815":"CHARGEMENT EN FOULEE","0003161334":"Rework HW-Q600B/ZF","0003168012":"hauteur 1m40 max suite mail justin","0003181180":"PALETTE MONO Ref","0003183556":"MONO REF 2m30 maxi","0003184595":"Palette mono ref — Lettre de voiture au BL","0003189265":"hauteur max 2m10 mail justin du 301020","0003192301":"MPS LOGYSTECH = PREPARATION SUR 2 COUCHES UNIQUEMENT 2M10 MAX — MECALOG = CR 80*120","0003257802":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet — lettre de voiture au BL","0003268316":"MONO REF  1m80  MAXI","0003269331":"sur palettes","0003273142":"MONO  REF 1m80 MAXI","0003273148":"MONO REF  1m80 MAXI","0003286549":"brun : CR 1m80 barre de son et tv inferieur à 55' — pas de cr tv sup à 55'","0003286552":"pas de cr pour les palettes sup à 55' sk le 091019","0003286559":"1M80 MAXI suite mail justin du 04/06/20","0003288855":"Palette mono référence - Hauteur maximum 2m","0003289192":"SUR PALETTES","0003317770":"Rework HW-Q600B/ZF-chargement RAIL/ROUTE","0003324139":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003327166":"1M80 MAXI suite mail justin du 23/09/20 — DOUBLE STACK POSSIBLE MAIL TAJ 26/03/24","0003373392":"Hauteur maximum 1,60m mono reference","0003385684":"PREPARATION SUR 80*120 MINIMUM  1 REFERENCE PAR PALETTE","0003385688":"Palette mono référence - Maximum 1 référence par palette","0003405142":"Palette mono référence - Préparation sur palette 80*120 sauf TV — hauteur 1m40 max suite mail justin","0003406030":"FRIGOS SUR PALETTES","0003406683":"PREPARATION SUR PALETTE SK LE 040226","0003418147":"Hauteur maximum 1,80m","0003424492":"PREP PAL DG251019","0003436533":"PREPARATION SUR PALETTE SK LE 040226","0003436542":"PREPARATION SUR PALETTE SK LE 040226","0003436544":"PREPARATION SUR PALETTE SK LE 040226","0003437603":"chargement RAIL/ROUTE","0003442483":"SUR PALETTES ET MONO REF","0003451403":"PREPARATION SUR PALETTE SK LE 040226","0003467687":"PREP SUR PAL","0003478522":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003863352":"PREPARATION SUR PALETTE SK LE 040226","0003903831":"hauteur max 1m80 suite mail justin 140521-CHARGEMENT EN FOULEE","0003991973":"PREPARATION SUR PALETTE SK LE 040226 — max 2M","0003993920":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0004172825":"préparation de produits sur palette pour les produits blancs GEM. — CHARGEMENT EN FOULEE","0004198369":"prep 1m60 suite mail tajamal du 091221","0004221729":"Rework HW-Q600B/ZF","0004244176":"Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0004244177":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet","0004248475":"Hauteur maximum 1,80m","0004256586":"Hauteur maximum 1,80m","0004257496":"Hauteur maxi palette 160cm  - mono reference - Mettre des CORNIERES — IMPERATIF SUR SUPPORT DE PROFONDEUR 120 CM MINIMUM","0004262634":"CHARGEMENT EN FOULEE","0004271167":"Hauteur maximum 1,80m","0004273238":"Hauteur maximum 1,40m","0004275446":"Hauteur maximum 1,80m","0004276019":"hauteur maximum 1,8m","0004292453":"SUR PALETTES MONO REF","0004304715":"Picking 1 colis 1 support 1 palette — *** ATTENTION  ETIQUETTE SPECIFIQUE A COLLER VOIR ADMIN****","0004308554":"Hauteur maximum 1,60m","0004313247":"JUNG 1 colis 1 support 1 palette DG — *** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004313601":"Hauteur maximum 1,60m","0004323104":"*** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004325267":"MONO REF  1M80 MAXI","0004325273":"MONO  REF 1M80 MAXI","0004325317":"MONO REF 1m80 MAXI","0004325327":"MONO REF 1m80 MAXI","0004325329":"MONO REF 1m80 MAXI","0004356173":"Hauteur maximum 1,80m","0004358350":"MONO REF 1m80 maxi","0004358369":"MONO REF  1m80 MAXI","0004358370":"MONO  REF 1m80 MAXI","0004358376":"MONO REF 1.80 MAXI","0004376542":"PREPARATION SUR PALETTE SK LE 040226","0004413893":"PREPARATION SUR PALETTE SK  LE 040226","0004771643":"PREPARATION SUR PALETTE SK LE 040226","0004795701":"CHARGEMENT EN FOULEE","0004967101":"PREPARATION SUR PALETTE SK LE 040226-chargement RAIL/ROUTE","0005336157":"PREP PAL","0005379038":"PREP PAL","0005384518":"SUR PALETTE 80*120 DDE JPJ LE 22/12/14 IMPERATIF","0005968566":"1M80 MAX METTRE DES INTERCALAIRES","0005968590":"1M80 MAX METTRE DES INTERCALAIRES SK LE 120624","0005983586":"1M70 MAIL TAJAMAL 17/07/24 CR","0005983620":"1M80 MAIL TAJAMAL 17/07/24 CR — DOUBLE STACK 65' et 70'","0005984458":"CHARGEMENT EN FOULEE","0006020280":"Palette mono référence - Hauteur maximum 2,20m — Lettre de voiture au BL","0006026492":"Palette mono référence - Hauteur maximum 1,80m SAUF TV — FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0006032397":"PREP PAL","0006040923":"Hauteur maximum 2m","0006042187":"Hauteur maximum 1,80m","0006053137":"Hauteur maximum 1,90m","0006056167":"Palette mono réf pour la prep brun /Hauteur maximum 1,80m sauf tele — MONO REF BLANC","0006066777":"PaL mono réf- Hauteur max 2m CORNIERES SUR TOUTES LES PAL IMPERATIF","0006076511":"Palette mono référence - Hauteur maximum 1,60m","0006084376":"* ATTENTION VOIR SOPHIE POUR LE PLAN ORTEC *CHARGEMENT EN FOULEE — hauteur 2m10 suite mail justin","0006084844":"CHARGEMENT EN FOULEE","0006085133":"MONO REF LORS DE LA PREP ET DE L EXPE","0006210950":"HAUTEUR MAX 1.80m sur 80*120 ou 100*120 si le produit le permet","0006237030":"Hauteur maximum 1,80m","0006255221":"HAUTEUR MAXI 2M00 / MONO REFERENCE /AUDIO/ VIDEO SUR 80*120 OU 100*120","0006280792":"PREPARATION SUR PALETTE SK LE 040226","0006286233":"Palette mono référence - Hauteur maximum 1,80m — Lettre de voiture au BL","0006286234":"Palette mono référence - Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0006286798":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006293456":"Hauteur maximum 1,80m mono reference- Préparation sur palette 80*120","0006295902":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006295903":"MONO REF  1m80 MAXI","0006299097":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120","0006448645":"1M80 MAX POUR LES PALETTES PICKING — DOUBLE STACK POUR  65 70 75\"","0006476525":"CHARGEMENT EN FOULEE","0006498863":"PREPARATION SUR PALETTE SK LE 040226","0007083510":"chargement RAIL/ROUTE","0007084775":"CHARGEMENT EN FOULEE","0007090098":"1M85 MAX SK LE 190326  DOUBLE STACK POUR  65 ET 70 POUCES — 1 ref par palette","0007330753":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — lettre de voiture au BL-CHARGEMENT EN FOULEE — !! double stacking 55'' 65'' 70''!!","0007372949":"SUR PALETTE DG","0007394758":"PREPARATIN SUR PALETTE SK LE 040226","0007398006":"PREPARATION SUR PALETTE SK LE 040226 — CHARGEMENT EN FOULEE","0007399103":"chargement RAIL/ROUTE","0007938006":"SUR PALETTE","0008321697":"Lettre de voiture au BL","0008321832":"PREPARATION SUR PALETTE SK LE 040226","0008372072":"Palette 2m20 max demande justin 130819","0008378983":"PREPARATION SUR PALETTE SK LE 040226","0008385062":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — Lettre de voiture au BL — DOUBLE STACK SUR 55 65 70 75\"","0009223778":"IMPERATIF SUR 80*120 SINON PAS DE DECHARGEMENT / 1 REF PAR PALETTE — HAUTEUR MAX 1M80 — PREP PAL dg 05/10/2018","0009223779":"HAUTEYR MAX 1M80 / PALETTE 80*120 IMPERATIF / PAL MONO REFERENCE — HAUTEUR MAX 1M80 / PAL MONO REFERENCE / 80*120 IMPERATIF — SUR PALETTES dg 05/10/2018","0009223811":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/2018","0009223812":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/18","0009235196":"Palette Mono ref / hauteur 2m maxi-CHARGEMENT EN FOULEE — pas d etetage sur ref sup ou egale à 55'","0009338220":"hauteur max 2m suite mail justin 130819-CHARGEMENT EN FOULEE — MO A REPALETISER SUR 80*120 ET CERCLAGE SK LE 241125","0009398792":"MONO REFERENCE / MAX 1M80"};
+const DEST_LABELS={"1917369":"ACAD","1968911":"GARD","2059448":"COJER ENCASTRABLE SARL","2088369":"CORA","3300806":"SYSTEME U","3385691":"CARREFOUR SARAN","3451403":"Gaheri Diffusion COJER","3458077":"CORA","3478522":"TFS","4313247":"SALM JUNG","6053137":"SYSTEME U","6212256":"CORA","6280792":"ACAD","7394758":"COJER ENCASTRABLE","7398006":"PLANETE TECHNOLOGIE","9223778":"ENTREPOT GRETZ","9223779":"ENTREPOT BOUFFERE","9223811":"Entrepôt SAUVAIN","9223812":"Entrepôt CNP","9338220":"CARREFOUR LE COUDRAY","0S413":"SAMSUNG SERVICE","0001410228":"UGAP MME DUPRE","0001438542":"PREVOTE LOGISTIQUE","0001454250":"RHODANIENENNE DE TRANSIT","0001460204":"TLV Distribution","0001488290":"COSTCO FRANCE","000149449":"DARTY ENTREPOT MOUSSY","0001494494":"FNAC CHEZ ENT DARTY MOUSSY","0001495706":"CDISCOUNT ORMES 2 PROUDREED","0001495743":"CDISCOUNT ORMES 1 INGRE","0001496150":"ENTREPOT COSTCO WHOLESALE","0001892895":"FRANCE MED EXPRESS","0001900673":"DHL GLOBAL FORWARD","0001968911":"GARD","0001969835":"COJER ORLY","0001982266":"ELECTRO DEPOT c/ XPO FOS SUR M","0002012285":"ACAD SAS","0002012957":"STE M.D.A.","0002013994":"TECH DATA","0002014466":"THUILLIER","0002021829":"DHL GLOBAL FORWARDING","0002023193":"DARTY BONDY","0002024058":"FNAC LOGISTIQUE","0002025772":"BIG","0002059448":"COJER ENCASTRABLE SARL","0002074403":"METRO","0002074404":"N.D. LOGISTICS","0002074447":"ENTREPOT KUEHNE ET NAGEL","0002079873":"FURNOTEL","0002081082":"AUCHAN","0002081932":"MISTER GOODDEAL","0002082543":"FOTOVISTA","0002082724":"DACEM ENTREPOT","0002083548":"CDISCOUNT, SA","0002084979":"VIKING DIRECT","0002091143":"STEAM BUSINESS","0002091488":"ENTREPOT EASYDIS","0002247972":"VENTE-PRIVEE.COM","0002261256":"FDPS - ENTREPOT DARTY MITRY","0002261259":"DARTY PLESSIS","0002261280":"FDPS - ENTREPOT DARTY PLESSY","0002261289":"DACEM ENTREPOT MOUSSY","0002261332":"FDPS - ENTREPOT DARTY SATOLAS","0002332826":"TFS FRANCE (NON GSMS)","0002333762":"GEODIS","0002334922":"PLANETE TECHNOLOGIE - IVS PRO","0002337062":"ZIEGLER GROUP - SORGUES","0002337065":"GPDIS CHARVIN","0002353770":"RICHARDSON LYON","0002354199":"ID LOGISTIC TOURNAN","0002412403":"CDISCOUNT SA Prologis","0002413184":"RANCE MED EXPRESS POUR ELECTRO","0002437040":"COBRA_BRIE COMTE ROBERT","0002445640":"TDM MOSTA TRANSPORTS","0002472625":"TRANS LINE LANMEUR","0002474775":"SARL AMH","0002493367":"ANAELLE DUBOS","0003145385":"BOLLORE LOGISTICS / Intermobil","0003149230":"MEFI TRANSPORTS","0003158815":"SARL ARAMIS","0003161334":"ID logistics Boulanger St Quen","0003168012":"Kuehne+Nagel SAS/CARREFOUR ART","0003181180":"CESTAS Manhattan-5-BATIMENT D","0003183556":"ACRH - ECOCUISINE","0003184595":"EASYDIS CORBAS","0003189265":"ELECTROSTOCK CHEZ C DISCOUNT","0003192301":"MPS by LOGSYTEH / SFR","0003257802":"CD DISCOUNT SA / BAT A CELLULE","0003268316":"MDA ORANGE","0003269331":"TPS DEPAEUW","0003273142":"MDA DAVEZIEUX","0003273148":"MDA NARROSSE","0003286549":"BTLEC OUEST","0003286552":"BTLEC EST WITRY","0003286559":"BUT INTERNATIONAL","0003288855":"ENTREPOT AUCHAN MEYZIEU","0003289192":"MODUL COLOR","0003317770":"ID LOGISTICS","0003324139":"COMEBACK","0003327166":"BUT MER","0003373392":"FNAC WISSOUS","0003385684":"STOCK ORMES","0003385688":"CARREFOUR STOCKE  VERT SAINT D","0003405142":"CARREFOUR EPCS LAUDUN","0003406030":"SIFA TRANSIT","0003406683":"LITO-PLAST","0003418147":"AMAZON EU SARL","0003424492":"DHL Global Forwarding","0003436533":"TTOM (BUT MARTINIQUE COMADI)","0003436542":"TTOM (BUT GUYANE LCD)","0003436544":"TTOM (BUT REUNION LBD)","0003437603":"SOMATRANS MARSEILLE","0003442483":"LOGMAT","0003451403":"GAHERI DIFFUSION-COJER","0003467687":"TFS France (Rue Rene Cassin )","0003478522":"TFS FRANCE","0003863352":"DEPOT COSTCO France","0003903831":"SON VIDEO DISTRIBUTION, SARL","0003991973":"ACAD EQUIPEMENT","0003993920":"KAY LARGO LOGISTIC - C/ IVS PR","0004172825":"Pontault Combault 5402","0004198369":"LEON VINCENT C/Z","0004221729":"PARCOLOG2","0004244176":"C DISCOUNT","0004244177":"C DISCOUNT","0004248475":"Amazon Deliveries Chez ND logi","0004256586":"AMAZON EU SARL (SEVREY)","0004257496":"FNAC WISSOUS","0004262634":"FVS","0004271167":"AMAZON STRASBOURG","0004273238":"OPTILOG - DOSSIER EVEREST","0004275446":"AMAZON EU SARL - PFORZHEIM","0004276019":"AMAZON EU SARL (XFRD) (NDL)","0004292453":"LOGMAT-PSL","0004304715":"CONCEPT HABITAT 07","0004308554":"FAST P/C SOGETRA","0004313247":"JUNG Logistique (ZI NORD)","0004313601":"SAGA AIR (Aerogare de Fret)","0004323104":"TRANSPORT MORY TEAM","0004325267":"MDA ALES","0004325273":"MDA COURNON","0004325317":"MDA PERPIGNAN","0004325327":"MDA SAUMUR","0004325329":"MDA ST PRIEST","0004356173":"AMAZON EU SARL-DOUAI/LILLE","0004358350":"MDA AIX NORD","0004358369":"MDA LE PUY EN VELAY","0004358370":"MDA MARQUETTE LEZ LILLE","0004358376":"MDA VALLAURIS","0004376542":"Batiment SOPALOR","0004413893":"DHL GLOBAL FORWARDING","0004771643":"COJER ENCASTRABLES","0004795701":"GCS","0004967101":"STEINWEG","0005336157":"GSF","0005379038":"ID LOGISTICS","0005384518":"Geodis XFRE Bat IDC9","0005968566":"BUT MER/CONFORAMA","0005968590":"BUT DUPEYRON/CONFORAMA","0005983586":"BUT INTER IDF TOURNAN","0005983620":"BUT INTER - PFL ELECTRICAL","0005984458":"AMENAGEMENTS INTERIEUR","0006020280":"ENTREPOTS CASIN","0006026492":"DARTY PLESSIS","0006032397":"PLANETE TECHNOLOGIE","0006040923":"LEON VINCENT OVERSEAS","0006042187":"BOULANGER","0006053137":"SYSTEME U","0006056167":"DARTY","0006066777":"AUCHAN","0006076511":"FNAC LOGISTIQUE","0006084376":"DIGITAL SOLUTIONS","0006084844":"XPO","0006085133":"ENTREPOT DE DARTY SATOLAS 3 BA","0006210950":"CDISCOUNTSA","0006237030":"AMAZON EU SARL","0006255221":"KUEHNE-NAGEL - MODELABS CEL 4","0006280792":"UPSILON","0006286233":"CD DISCOUNT SA","0006286234":"CD DISCOUNT SA","0006286798":"CASINO","0006293456":"CASINO","0006295902":"C DISCOUNT","0006295903":"MDA ST ETIENNE","0006299097":"ENTREPOT EASYDIS CDISCOUNT","0006448645":"Carrefour chez Kuehne Nagel SA","0006476525":"Transport Fruytier","0006498863":"COSTCO France","0007083510":"GXO LOGISTICS France (XPO SCH","0007084775":"ACAD DISTRIBUTION","0007090098":"CONFORAMA BAUER","0007330753":"DOSSIER CDISCOUNT      ST MARD","0007372949":"ELECTROSTOCK","0007394758":"COJER ENCASTRABLES","0007398006":"Planete Technologie","0007399103":"SOMATRANS MARSEILLE","0007938006":"PLANET TECHNOLOGIQUE","0008321697":"DOSSIER CDISCOUNT +30 BAT A","0008321832":"SIMASTOCK (BATIMENT A)","0008372072":"BUT INTERNATIONAL","0008378983":"MDA STE MEMMIE","0008385062":"ENTREPOT EASYDIS CDISCOUNT","0009223778":"C DISCOUNT ENTREPOT GRETZ","0009223779":"C DISCOUNT ENTREPOT BOUFFERE","0009223811":"C DISCOUNT ENTREPOT SAUVIAN","0009223812":"C DISCOUNT ENTREPOT CNP","0009235196":"AUCHAN LOGIST GEODIS BAT C BZ","0009338220":"CARREFOUR LE COUDRAY PEM","0009398792":"C DISCOUNT ENTREPOT ZOLPLAN"};
+
+let state=load()||{theme:'light',mode:'exploitation',flux:'out',currentDate:todayPlus(1),days:{},users:[]};
+if(!state.users)state.users=[];
+if(!state.flux)state.flux='out';
+if(!state.crMap)state.crMap={};
+if(Object.keys(state.crMap).length===0)state.crMap=Object.assign({},DEFAULT_CRMAP);
+let session=JSON.parse(localStorage.getItem(LS_SESS)||'null');
+let fb={enabled:false,db:null,ref:null,uref:null,cref:null,suppress:false,cfg:null};
+let activeFilter='';
+
+function todayISO(d=new Date()){const o=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return o.toISOString().slice(0,10);}
+function todayPlus(n){const d=new Date();d.setDate(d.getDate()+n);return todayISO(d);}
+function nowHM(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function load(){try{return JSON.parse(localStorage.getItem(LS));}catch(e){return null;}}
+function save(){localStorage.setItem(LS,JSON.stringify(state));pushFb();}
+function fmtFR(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function $(s){return document.querySelector(s);}
+function dayData(){const d=state.days[state.currentDate]=state.days[state.currentDate]||{rows:[],updated:null};if(!d.inRows)d.inRows=[];if(!d.inCols)d.inCols=null;return d;}
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return(h>>>0).toString(16);}
+function toMin(hm){if(!hm||!/^\d{1,2}:\d{2}$/.test(hm))return null;const p=hm.split(':');return(+p[0])*60+(+p[1]);}
+function railColor(code){let s=0;for(const c of code)s+=c.charCodeAt(0);return GRAIL[s%GRAIL.length];}
+
+function autoStatus(r){if(r.depart)return'termine';if(r.charg)return'cours';if(r.arrivee||r.quai)return'attente';return'nonpresente';}
+function propagate(row){if(!row.groupage)return;dayData().rows.forEach(r=>{if(r!==row&&r.groupage===row.groupage){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
+function setStamp(row,f){row[f]=row[f]?'':nowHM();row.statut=autoStatus(row);propagate(row);touch();render();}
+function touch(){dayData().updated=new Date().toISOString();save();}
+
+function normKey(s){return(s||'').toString().trim().toLowerCase().replace(/\s+/g,' ');}
+function cleanTime(v){if(!v)return'';v=String(v).trim();if(/^0?\.\d+$/.test(v)){const f=parseFloat(v),mins=Math.round(f*1440);return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}const m=v.match(/(\d{1,2})[:hH](\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:v;}
+function buildRow(o){return{id:uid(),departure:o.departure||'',rdv:o.rdv||'',transporteur:o.transporteur||'',groupage:o.groupage||'',destinataire:o.destinataire||'',destcode:o.destcode||'',cr:o.cr||'',quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'};}
+/* CR client = paramétré par code destinataire (colonne L). Le mapping est la source de vérité. */
+function seedCrMap(rows){rows.forEach(r=>{if(r.destcode&&r.cr&&state.crMap[r.destcode]===undefined)state.crMap[r.destcode]=r.cr;});}
+function applyCrMap(){Object.values(state.days).forEach(d=>d.rows.forEach(r=>{if(r.destcode&&state.crMap[r.destcode]!==undefined)r.cr=state.crMap[r.destcode];}));}
+function mapRecords(records){return records.map(r=>{const g={};for(const k in r)g[normKey(k)]=r[k];const pick=function(){for(var i=0;i<arguments.length;i++){var k=arguments[i];if(g[k]!==undefined&&String(g[k]).trim()!=='')return String(g[k]).trim();}return'';};return buildRow({departure:pick('n° departure','no departure','departure','départ'),rdv:cleanTime(pick('heure de chargement','rdv','heure charg.','heure chargement')),transporteur:pick('transporteur l2 (facturation)','transporteur','transporteur l2'),groupage:pick('group','groupage','groupe'),destinataire:pick('destinataire description','destinataire'),destcode:pick('destinataire code','code destinataire','destcode'),cr:pick('cr','cr client')});}).filter(r=>r.departure);}
+function parseTSV(text){const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='');if(lines.length<2)return[];const h=lines[0].split('\t');return lines.slice(1).map(l=>{const c=l.split('\t');const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
+function mergeRows(target,incoming,replace){if(replace)return incoming;const keyOf=r=>[r.departure,r.rdv,r.destinataire].join('|');const ex=new Map();target.forEach(r=>{const k=keyOf(r);(ex.get(k)||ex.set(k,[]).get(k)).push(r);});return incoming.map(r=>{const p=ex.get(keyOf(r));if(p&&p.length){const o=p.shift();return Object.assign({},r,{id:o.id,quai:o.quai,arrivee:o.arrivee,charg:o.charg,depart:o.depart,statut:o.statut});}return r;});}
+
+function buildUnits(rows){const map=new Map();rows.forEach(r=>{const k=r.groupage?('G:'+r.groupage):('R:'+r.id);(map.get(k)||map.set(k,[]).get(k)).push(r);});return[...map.values()].map(g=>({rows:g,rep:g[0]}));}
+function kpiFor(units,tol){let total=units.length,pres=0,done=0,aOn=0,aN=0,cOn=0,cN=0,dS=0,dN=0;units.forEach(u=>{const r=u.rep,rdv=toMin(r.rdv);if(r.arrivee||r.quai||r.charg||r.depart)pres++;if(r.depart)done++;const a=toMin(r.arrivee);if(rdv!=null&&a!=null){aN++;if(a<=rdv+tol)aOn++;}const c=toMin(r.charg);if(rdv!=null&&c!=null){cN++;if(c<=rdv+tol)cOn++;dS+=c-rdv;dN++;}});return{total,pres,done,presRate:total?Math.round(pres/total*100):0,arrRate:aN?Math.round(aOn/aN*100):null,chgRate:cN?Math.round(cOn/cN*100):null,avgDelay:dN?Math.round(dS/dN):null};}
+
+const COLS=['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','QUAI','H. ARRIVÉE','H. CHARG.','H. DÉPART','STATUT'];
+function visibleRows(){const d=dayData(),q=($('#searchInput').value||'').toLowerCase(),tf=$('#transpFilter').value;
+  return d.rows.filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tf&&r.transporteur!==tf)return false;if(q){const b=(r.departure+' '+r.transporteur+' '+r.destinataire+' '+r.groupage+' '+r.cr).toLowerCase();if(!b.includes(q))return false;}return true;})
+  .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.groupage||'zzzz').localeCompare(b.groupage||'zzzz')||a.departure.localeCompare(b.departure));}
+
+function render(){
+  document.documentElement.setAttribute('data-theme',state.theme);
+  $('#themeBtn').textContent=state.theme==='dark'?'☀️':'🌙';
+  if(session&&session.role==='client')state.mode='client';
+  const isClient=state.mode==='client';
+  $('#dateInput').value=state.currentDate;
+  $('#who').innerHTML=session?session.label+'<span class="badge">'+(session.role==='client'?'Client':'Exploitation')+'</span>':'';
+  $('#modeSeg').style.display=(session&&session.role==='exploitation')?'inline-flex':'none';
+  document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===state.mode));
+  $('#clientBanner').style.display=isClient?'flex':'none';
+  $('#toolbar').style.display=isClient?'none':'flex';
+  if(isClient){$('#clientDate').textContent=fmtFR(state.currentDate);const u=dayData().updated;$('#lastUpdate').textContent=u?new Date(u).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'—';}
+
+  document.querySelectorAll('#fluxSeg button').forEach(b=>b.classList.toggle('on',b.dataset.flux===state.flux));
+  const isCmp=state.flux==='cmp';
+  $('#crBtn').style.display=state.flux==='out'?'':'none';
+  $('#importBtn').style.display=isCmp?'none':'';
+  $('#dashBtn').style.display=isCmp?'none':'';
+  $('#searchInput').closest('.field').style.display=isCmp?'none':'';
+  $('#transpFilter').closest('.field').style.display=isCmp?'none':'';
+  $('#filterLabel').textContent=state.flux==='in'?'Conteneur':'Transporteur';
+  $('#searchInput').placeholder=state.flux==='in'?'Material, conteneur, message, référence…':'Départ, transporteur, destinataire…';
+  if(isCmp){renderCompiled(isClient);return;}
+  if(state.flux==='in'){renderIn(isClient);return;}
+
+  $('#head').innerHTML=COLS.map(c=>'<th>'+c+'</th>').join('');
+  const tf=$('#transpFilter'),cur=tf.value;
+  const transps=[...new Set(dayData().rows.map(r=>r.transporteur).filter(Boolean))].sort();
+  tf.innerHTML='<option value="">Tous</option>'+transps.map(t=>'<option>'+t+'</option>').join('');tf.value=cur;
+
+  const rows=visibleRows(),body=$('#body');body.innerHTML='';
+  const empty=dayData().rows.length===0;
+  $('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
+
+  rows.forEach((r,i)=>{
+    const tr=document.createElement('tr');tr.className=r.statut;
+    const grouped=!!r.groupage;
+    const prev=rows[i-1];
+    const first=grouped&&(!prev||prev.groupage!==r.groupage);
+    if(grouped){tr.classList.add('grp');tr.style.setProperty('--grail',railColor(r.groupage));}
+    const count=grouped?dayData().rows.filter(x=>x.groupage===r.groupage).length:0;
+    const badge=first?'<span class="grpbadge" style="background:'+railColor(r.groupage)+'">⛓ '+r.groupage+' · '+count+'</span>':'';
+
+    if(isClient){
+      tr.innerHTML=
+        '<td class="statecell">'+r.departure+badge+'</td>'+
+        '<td class="rdv">'+(r.rdv||'—')+'</td><td>'+(r.transporteur||'—')+'</td>'+
+        '<td class="grpcode">'+(r.groupage||'')+'</td><td class="dest">'+(r.destinataire||'—')+'</td>'+
+        '<td class="cr">'+(r.cr||'')+'</td>'+
+        '<td><span class="ro '+(r.quai?'':'empty')+'">'+(r.quai||'—')+'</span></td>'+
+        '<td><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'—')+'</span></td>'+
+        '<td><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'—')+'</span></td>'+
+        '<td><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'—')+'</span></td>'+
+        '<td><span class="pill '+r.statut+'">'+STATUSES[r.statut]+'</span></td>';
+    }else{
+      const opEditable=!grouped||first;
+      const head=
+        '<td class="statecell">'+r.departure+badge+'</td>'+
+        '<td class="rdv">'+(r.rdv||'—')+'</td><td>'+(r.transporteur||'—')+'</td>'+
+        '<td class="grpcode">'+(r.groupage||'')+'</td><td class="dest">'+(r.destinataire||'—')+'</td>'+
+        '<td class="cr"><input value="'+(r.cr||'').replace(/"/g,'&quot;')+'" data-f="cr" style="width:200px"></td>';
+      let ops;
+      if(opEditable){
+        ops=
+        '<td class="quaicell"><input value="'+(r.quai||'')+'" data-f="quai" placeholder="—"></td>'+
+        '<td class="timecell"><div class="stamp"><input value="'+(r.arrivee||'')+'" data-f="arrivee" placeholder="--:--"><button data-st="arrivee" title="Tamponner">⏱</button></div></td>'+
+        '<td class="timecell"><div class="stamp"><input value="'+(r.charg||'')+'" data-f="charg" placeholder="--:--"><button data-st="charg" title="Tamponner">⏱</button></div></td>'+
+        '<td class="timecell"><div class="stamp"><input value="'+(r.depart||'')+'" data-f="depart" placeholder="--:--"><button data-st="depart" title="Tamponner">⏱</button></div></td>'+
+        '<td><select class="statesel '+r.statut+'" data-f="statut">'+Object.entries(STATUSES).map(([k,v])=>'<option value="'+k+'" '+(k===r.statut?'selected':'')+'>'+v+'</option>').join('')+'</select></td>';
+      }else{
+        // ligne d'un groupage : opérationnel saisi une seule fois sur la 1re ligne du camion → miroir lecture seule
+        ops=
+        '<td class="mirror"><span class="ro '+(r.quai?'':'empty')+'" title="Saisi sur la 1re ligne du camion '+r.groupage+'">↳ '+(r.quai||'—')+'</span></td>'+
+        '<td class="mirror"><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'—')+'</span></td>'+
+        '<td class="mirror"><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'—')+'</span></td>'+
+        '<td class="mirror"><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'—')+'</span></td>'+
+        '<td class="mirror"><span class="pill '+r.statut+'">'+STATUSES[r.statut]+'</span></td>';
+      }
+      tr.innerHTML=head+ops;
+      // CR : modifiable, et alimente le mapping par code destinataire
+      const crInp=tr.querySelector('[data-f="cr"]');
+      if(crInp)crInp.addEventListener('change',()=>{const v=crInp.value;r.cr=v;if(r.destcode){state.crMap[r.destcode]=v;applyCrMap();}propagate(r);touch();render();});
+      if(opEditable){
+        tr.querySelectorAll('[data-f]:not([data-f="cr"])').forEach(inp=>inp.addEventListener('change',()=>{
+          const f=inp.dataset.f;let v=inp.value;
+          if(f==='arrivee'||f==='charg'||f==='depart')v=cleanTime(v);
+          r[f]=v;if(f!=='statut')r.statut=autoStatus(r);
+          propagate(r);touch();render();}));
+        tr.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>setStamp(r,b.dataset.st)));
+      }
+    }
+    body.appendChild(tr);
+  });
+
+  const all=dayData().rows,c={nonpresente:0,attente:0,cours:0,termine:0};all.forEach(r=>c[r.statut]++);
+  $('#stats').innerHTML=
+    '<div class="stat total '+(activeFilter===''?'':'dim')+'" data-flt=""><span class="dot"></span>Total <b>'+all.length+'</b></div>'+
+    '<div class="stat np '+(activeFilter===''||activeFilter==='nonpresente'?'':'dim')+'" data-flt="nonpresente"><span class="dot"></span>Non prés. <b>'+c.nonpresente+'</b></div>'+
+    '<div class="stat attente '+(activeFilter===''||activeFilter==='attente'?'':'dim')+'" data-flt="attente"><span class="dot"></span>Attente <b>'+c.attente+'</b></div>'+
+    '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
+    '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Terminé <b>'+c.termine+'</b></div>';
+  $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
+  $('#countLine').textContent=rows.length+' ligne(s) · '+buildUnits(all).length+' camion(s) · '+all.length+' commande(s)';
+  $('#syncState').className='sync-state '+(fb.enabled?'on':'local');
+  $('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
+}
+
+function rateCls(v){if(v===null)return'n';if(v>=90)return'g';if(v>=70)return'w';return'b';}
+function rateHtml(v){return v===null?'<span class="rate n">—</span>':'<span class="rate '+rateCls(v)+'">'+v+'%</span>';}
+function delayHtml(v){if(v===null)return'<span style="color:var(--muted)">—</span>';if(v>0)return'<span class="delay-pos">+'+v+' min</span>';if(v<0)return'<span class="delay-neg">'+v+' min</span>';return'<span class="delay-neg">à l\'heure</span>';}
+function renderDash(){
+  if(state.flux==='in'){renderDashIn();return;}
+  $('#dashIntro').textContent='Respect des heures = heure réelle ≤ RDV + tolérance. Les groupages comptent pour 1 camion.';
+  $('#dashSec1').textContent='Par type de départ (DB / DW)';$('#dashSec2').textContent='Par transporteur';
+  const tol=parseInt($('#tolInput').value)||0;
+  const all=dayData().rows,units=buildUnits(all);
+  $('#dashDate').textContent=fmtFR(state.currentDate);
+  const g=kpiFor(units,tol);
+  $('#dashCards').innerHTML=
+    '<div class="card"><div class="k">Camions</div><div class="v">'+g.total+'</div><div class="sub">'+all.length+' commandes</div></div>'+
+    '<div class="card '+(g.presRate>=90?'good':g.presRate>=70?'warn':'bad')+'"><div class="k">Présentation</div><div class="v">'+g.presRate+'%</div><div class="sub">'+g.pres+'/'+g.total+' présentés</div></div>'+
+    '<div class="card"><div class="k">Terminés</div><div class="v">'+g.done+'</div><div class="sub">départs effectués</div></div>'+
+    '<div class="card '+(g.arrRate===null?'':g.arrRate>=90?'good':g.arrRate>=70?'warn':'bad')+'"><div class="k">Ponctualité arrivée</div><div class="v">'+(g.arrRate===null?'—':g.arrRate+'%')+'</div><div class="sub">arrivée ≤ RDV+'+tol+'</div></div>'+
+    '<div class="card '+(g.chgRate===null?'':g.chgRate>=90?'good':g.chgRate>=70?'warn':'bad')+'"><div class="k">Ponctualité charg.</div><div class="v">'+(g.chgRate===null?'—':g.chgRate+'%')+'</div><div class="sub">charg. ≤ RDV+'+tol+'</div></div>'+
+    '<div class="card"><div class="k">Écart moyen charg.</div><div class="v" style="font-size:22px">'+(g.avgDelay===null?'—':(g.avgDelay>0?'+':'')+g.avgDelay+' min')+'</div><div class="sub">vs RDV</div></div>';
+
+  const head='<thead><tr><th>Groupe</th><th>Camions</th><th>Présentation</th><th>Ponct. arrivée</th><th>Ponct. charg.</th><th>Écart moyen</th><th>Terminés</th></tr></thead>';
+  const row=(lbl,k)=>'<tr><td class="lbl">'+lbl+'</td><td>'+k.total+'</td><td>'+rateHtml(k.presRate)+'</td><td>'+rateHtml(k.arrRate)+'</td><td>'+rateHtml(k.chgRate)+'</td><td>'+delayHtml(k.avgDelay)+'</td><td>'+k.done+'</td></tr>';
+  const types={};units.forEach(u=>{const t=(u.rep.departure||'').slice(0,2).toUpperCase();(types[t]=types[t]||[]).push(u);});
+  let bt=head+'<tbody>';Object.keys(types).sort().forEach(t=>{bt+=row(t==='DB'?'DB':t==='DW'?'DW':t||'(?)',kpiFor(types[t],tol));});bt+='</tbody>';
+  $('#dashByType').innerHTML=bt;
+  const byT={};units.forEach(u=>{const t=u.rep.transporteur||'(sans)';(byT[t]=byT[t]||[]).push(u);});
+  const sorted=Object.entries(byT).sort((a,b)=>b[1].length-a[1].length);
+  let bx=head+'<tbody>';sorted.forEach(([t,us])=>bx+=row(t,kpiFor(us,tol)));bx+='</tbody>';
+  $('#dashByTransp').innerHTML=bx;
+}
+function exportDash(){
+  if(state.flux==='in'){exportInDash();return;}
+  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(dayData().rows);
+  const wb=XLSX.utils.book_new();
+  const mk=groups=>{const d=[['Groupe','Camions','Présentés','Tx présentation %','Ponct. arrivée %','Ponct. charg. %','Écart moyen (min)','Terminés']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,k.chgRate,k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
+  const types={};units.forEach(u=>{const t=(u.rep.departure||'').slice(0,2).toUpperCase();(types[t]=types[t]||[]).push(u);});
+  const byT={};units.forEach(u=>{const t=u.rep.transporteur||'(sans)';(byT[t]=byT[t]||[]).push(u);});
+  XLSX.utils.book_append_sheet(wb,mk(Object.entries(types).sort()),'Par type');
+  XLSX.utils.book_append_sheet(wb,mk(Object.entries(byT).sort((a,b)=>b[1].length-a[1].length)),'Par transporteur');
+  XLSX.writeFile(wb,'Dashboard_ponctualite_'+state.currentDate+'.xlsx');
+}
+
+function exportXLSX(){
+  if(state.flux==='cmp'){exportCompiled();return;}
+  if(state.flux==='in'){exportInXLSX();return;}
+  const rows=visibleRows();const data=[['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','Quai','Heure Arrivée','Heure charg','Heure Départ','Statut']];
+  rows.forEach(r=>data.push([r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:7},{wch:18},{wch:13},{wch:30},{wch:30},{wch:6},{wch:11},{wch:10},{wch:10},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Planning');XLSX.writeFile(wb,'Planning_IN-OUT_'+state.currentDate+'.xlsx');
+}
+
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+async function initFb(cfg){
+  try{
+    if(!window.firebase){await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');}
+    const app=window.firebase.initializeApp({apiKey:cfg.apiKey,databaseURL:cfg.databaseURL,projectId:cfg.projectId,appId:cfg.appId},'app_'+Date.now());
+    fb.db=window.firebase.database(app);fb.enabled=true;fb.cfg=cfg;subUsers();subCrMap();subData();return true;
+  }catch(e){alert('Connexion Firebase impossible.\n'+e.message);fb.enabled=false;return false;}
+}
+function fbDataPath(){return 'planning/'+state.currentDate;}
+function pushFb(){if(!fb.enabled||fb.suppress)return;if(session&&session.role==='client')return;try{fb.db.ref(fbDataPath()).set(dayData());fb.db.ref('meta/users').set(state.users);fb.db.ref('meta/crmap').set(state.crMap);}catch(e){}}
+function subData(){if(fb.ref)fb.ref.off();if(!fb.enabled)return;fb.ref=fb.db.ref(fbDataPath());fb.ref.on('value',s=>{const v=s.val();if(!v)return;fb.suppress=true;state.days[state.currentDate]=v;localStorage.setItem(LS,JSON.stringify(state));render();fb.suppress=false;});}
+function subUsers(){if(fb.uref)fb.uref.off();if(!fb.enabled)return;fb.uref=fb.db.ref('meta/users');fb.uref.on('value',s=>{const v=s.val();if(v){state.users=v;localStorage.setItem(LS,JSON.stringify(state));}});}
+function subCrMap(){if(fb.cref)fb.cref.off();if(!fb.enabled)return;fb.cref=fb.db.ref('meta/crmap');fb.cref.on('value',s=>{const v=s.val();if(v){state.crMap=v;localStorage.setItem(LS,JSON.stringify(state));applyCrMap();render();}});}
+function buildClientFile(){
+  const cfg=JSON.parse(localStorage.getItem(LS_FB)||'null');
+  if(!cfg){alert('Active d\'abord la sync.');return;}
+  let html=document.documentElement.outerHTML;
+  const inject='<script>window.__FB_CONFIG__='+JSON.stringify(cfg)+';<\/script>';
+  html='<!DOCTYPE html>\n'+html.replace('</head>',inject+'</head>');
+  const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='planning_client_GXO.html';a.click();
+}
+
+function findUser(code){const h=hash(code);return state.users.find(u=>u.h===h);}
+function applySession(){
+  const needSetup=state.users.length===0;
+  $('#setupModal').classList.toggle('open',needSetup);
+  $('#loginModal').classList.toggle('open',!needSetup&&!session);
+  if(session){if(session.role==='client')state.mode='client';render();}
+  document.body.style.visibility='visible';
+}
+function logout(){session=null;localStorage.removeItem(LS_SESS);state.mode='exploitation';applySession();}
+
+function renderUsers(){
+  $('#userList').innerHTML=state.users.map((u,i)=>'<div class="u"><b>'+(u.label||'—')+'</b><span class="urole '+u.role+'">'+u.role+'</span><span class="spacer" style="flex:1"></span><button class="btn danger" data-del="'+i+'">Supprimer</button></div>').join('')||'<div class="u" style="color:var(--muted)">Aucun compte</div>';
+  $('#userList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.del,u=state.users[i];
+    if(u.role==='exploitation'&&state.users.filter(x=>x.role==='exploitation').length<=1){$('#usersErr').textContent='Impossible : il faut au moins un compte exploitation.';return;}
+    state.users.splice(i,1);save();renderUsers();});
+}
+
+$('#themeBtn').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();render();};
+$('#logoutBtn').onclick=logout;
+$('#modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(session&&session.role!=='exploitation')return;state.mode=b.dataset.mode;render();});
+$('#fluxSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.flux=b.dataset.flux;activeFilter='';if($('#searchInput'))$('#searchInput').value='';if($('#transpFilter'))$('#transpFilter').value='';save();render();});
+$('#dateInput').onchange=e=>{state.currentDate=e.target.value;activeFilter='';if(fb.enabled)subData();render();};
+$('#searchInput').oninput=render;$('#transpFilter').onchange=render;
+$('#printBtn').onclick=()=>window.print();$('#exportBtn').onclick=exportXLSX;
+$('#dashBtn').onclick=()=>{renderDash();$('#dashModal').classList.add('open');};
+$('#tolInput').oninput=renderDash;$('#dashExport').onclick=exportDash;
+$('#importBtn').onclick=()=>{$('#importDate').value=state.currentDate;const isIn=state.flux==='in';
+  $('#importTitle').textContent=isIn?'Importer les fichiers de réception (IN)':'Importer la base du jour';
+  $('#importDesc').textContent=isIn?"Charge le .xlsx de réception ou colle les lignes (avec ou sans en-têtes). Les deux formats (avec/sans Seal No.) sont reconnus.":'Colle les lignes copiées depuis Excel (en-têtes inclus) ou charge le fichier .xlsx.';
+  $('#importHint').innerHTML=isIn?"Les lignes Material sont <b>agrégées</b> par heure + Container No. + SD Document + MESSAGE (<b>Quantités sommées</b>). Regroupement opérationnel par conteneur : Quai / Arrivée / Déchargement / Départ saisis une seule fois par conteneur. Vides → « Non présenté ».":'<b>Quai, Heure Arrivée, Heure charg, Heure Départ</b> restent vides → statut « Non présenté » (ligne blanche). Une ré-importation conserve les saisies (matching Départ + RDV + Destinataire).';
+  $('#importModal').classList.add('open');};
+$('#emptyImport').onclick=()=>$('#importBtn').click();
+$('#fileBtn').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];window.__rec=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});$('#pasteArea').value='✓ '+f.name+' — '+window.__rec.length+' ligne(s). Clique « Importer ».';};rd.readAsBinaryString(f);};
+$('#doImport').onclick=()=>{const dt=$('#importDate').value||state.currentDate;const pasted=($('#pasteArea').value||'').trim();
+  if(state.flux==='in'){
+    let recs=window.__rec||(pasted&&!pasted.startsWith('✓')?parseInPaste(pasted):null);
+    if(!recs||!recs.length){alert('Colle des données ou charge un fichier.');return;}
+    importIn(recs,$('#replaceChk').checked,dt);
+  }else{
+    let rec=window.__rec;if(!rec){if(!pasted||pasted.startsWith('✓')){alert('Colle des données ou charge un fichier.');return;}rec=parseTSV(pasted);}
+    const rows=mapRecords(rec);if(!rows.length){alert('Aucune ligne valide (en-têtes inclus ?).');return;}seedCrMap(rows);state.currentDate=dt;const d=(state.days[dt]=state.days[dt]||{rows:[],updated:null});d.rows=mergeRows(d.rows,rows,$('#replaceChk').checked);applyCrMap();d.updated=new Date().toISOString();
+  }
+  window.__rec=null;$('#pasteArea').value='';$('#replaceChk').checked=false;$('#fileInput').value='';save();if(fb.enabled)subData();$('#importModal').classList.remove('open');activeFilter='';render();};
+$('#usersBtn').onclick=()=>{$('#usersErr').textContent='';renderUsers();$('#usersModal').classList.add('open');};
+$('#nuAdd').onclick=()=>{const label=$('#nuLabel').value.trim(),code=$('#nuCode').value.trim(),role=$('#nuRole').value;if(!code){$('#usersErr').textContent='Saisis un code.';return;}if(state.users.some(u=>u.h===hash(code))){$('#usersErr').textContent='Ce code existe déjà.';return;}state.users.push({h:hash(code),role,label});save();$('#nuLabel').value='';$('#nuCode').value='';$('#usersErr').textContent='';renderUsers();};
+
+function renderCrMap(){
+  const entries=Object.entries(state.crMap).sort((a,b)=>(DEST_LABELS[a[0]]||a[0]).localeCompare(DEST_LABELS[b[0]]||b[0]));
+  $('#crCount').textContent=entries.length+' code(s) destinataire paramétré(s)';
+  $('#crList').innerHTML=entries.length?entries.map(([code,lbl])=>'<div class="u"><div style="display:flex;flex-direction:column;width:150px"><input value="'+code.replace(/"/g,'&quot;')+'" disabled style="width:100%;font-variant-numeric:tabular-nums"><span style="font-size:10.5px;color:var(--muted);margin-top:2px">'+(DEST_LABELS[code]||'—')+'</span></div><input class="crlbl" data-code="'+code.replace(/"/g,'&quot;')+'" value="'+(lbl||'').replace(/"/g,'&quot;')+'" style="flex:1"><button class="btn danger" data-crdel="'+code.replace(/"/g,'&quot;')+'">Suppr.</button></div>').join(''):'<div class="u" style="color:var(--muted)">Aucun CR paramétré.</div>';
+  $('#crList').querySelectorAll('.crlbl').forEach(inp=>inp.addEventListener('change',()=>{state.crMap[inp.dataset.code]=inp.value;applyCrMap();save();render();}));
+  $('#crList').querySelectorAll('[data-crdel]').forEach(b=>b.onclick=()=>{delete state.crMap[b.dataset.crdel];save();renderCrMap();render();});
+}
+$('#crBtn').onclick=()=>{$('#crErr').textContent='';renderCrMap();$('#crModal').classList.add('open');};
+$('#crAdd').onclick=()=>{const code=$('#crNewCode').value.trim(),lbl=$('#crNewLbl').value.trim();if(!code){$('#crErr').textContent='Saisis un code destinataire.';return;}state.crMap[code]=lbl;applyCrMap();save();$('#crNewCode').value='';$('#crNewLbl').value='';$('#crErr').textContent='';renderCrMap();render();};
+$('#crReload').onclick=()=>{if(!confirm('Recharger la base CR par défaut ? Les codes de la base seront remis à leur valeur d\'origine (tes ajouts manuels sur d\'autres codes sont conservés).'))return;Object.assign(state.crMap,DEFAULT_CRMAP);applyCrMap();save();renderCrMap();render();};
+$('#linkCopy').onclick=()=>{const c=JSON.parse(localStorage.getItem(LS_FB)||'null');if(!c||!c.databaseURL){alert('Active d\'abord la sync Firebase.');return;}const base=location.href.split('#')[0];const url=base+'#cfg='+btoa(unescape(encodeURIComponent(JSON.stringify(c))));const done=()=>alert('Lien copié.\n\nToute personne qui ouvre ce lien (fichier hébergé) voit le live et se connecte avec son code. Pense à héberger ce fichier sur GitHub Pages ou ton intranet.');if(navigator.clipboard)navigator.clipboard.writeText(url).then(done,()=>prompt('Copie ce lien :',url));else prompt('Copie ce lien :',url);};
+$('#syncBtn').onclick=()=>{const c=JSON.parse(localStorage.getItem(LS_FB)||'{}');$('#fbUrl').value=c.databaseURL||'';$('#fbKey').value=c.apiKey||'';$('#fbProj').value=c.projectId||'';$('#fbApp').value=c.appId||'';$('#syncModal').classList.add('open');};
+$('#fbSave').onclick=async()=>{const cfg={databaseURL:$('#fbUrl').value.trim(),apiKey:$('#fbKey').value.trim(),projectId:$('#fbProj').value.trim(),appId:$('#fbApp').value.trim()};if(!cfg.databaseURL||!cfg.apiKey){alert('databaseURL et apiKey requis.');return;}if(await initFb(cfg)){localStorage.setItem(LS_FB,JSON.stringify(cfg));pushFb();render();$('#syncModal').classList.remove('open');alert('Sync activée. Génère maintenant le « Fichier client à héberger ».');}};
+$('#fbDisable').onclick=()=>{if(fb.ref)fb.ref.off();if(fb.uref)fb.uref.off();fb.enabled=false;localStorage.removeItem(LS_FB);$('#syncModal').classList.remove('open');render();};
+$('#fbBuild').onclick=buildClientFile;
+$('#setupSave').onclick=()=>{const label=$('#setupLabel').value.trim(),code=$('#setupCode').value.trim();if(!code){$('#setupErr').textContent='Saisis un code.';return;}state.users.push({h:hash(code),role:'exploitation',label:label||'Admin'});session={role:'exploitation',label:label||'Admin'};localStorage.setItem(LS_SESS,JSON.stringify(session));save();$('#setupModal').classList.remove('open');applySession();};
+$('#loginBtn').onclick=()=>{const code=$('#loginCode').value.trim(),u=findUser(code);if(!u){$('#loginErr').textContent='Code invalide.';return;}session={role:u.role,label:u.label};localStorage.setItem(LS_SESS,JSON.stringify(session));$('#loginCode').value='';$('#loginErr').textContent='';$('#loginModal').classList.remove('open');if(u.role==='client')state.mode='client';applySession();};
+$('#loginCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
+$('#setupCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#setupSave').click();});
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.overlay').classList.remove('open'));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o&&o.id!=='setupModal'&&o.id!=='loginModal')o.classList.remove('open');}));
+setInterval(()=>{if(state.mode==='client'&&!fb.enabled){const fr=load();if(fr){state.days=fr.days;render();}}},4000);
+
+/* ===================== FLUX IN (réceptions) — vue agrégée ===================== */
+/* Source = export réception (formats avec ou sans Seal No. : les colonnes utiles sont communes).
+   Les lignes Material sont AGRÉGÉES par (heure de livraison + Container No. + SD Document + MESSAGE),
+   les Quantités sont sommées. Visuel fixe : Time of delivery | Container No. | MESSAGE | SD Document |
+   Quantités | Quai | Heure Arrivée | Heure decharg | Heure Départ. Regroupement opérationnel par conteneur. */
+const IN_COLS=[{key:'rdv',label:'Time of delivery'},{key:'container',label:'Container No.'},{key:'message',label:'MESSAGE'},{key:'sd',label:'SD Document'},{key:'qty',label:'Quantités'}];
+const IN_OPS=['Quai','Heure Arrivée','Heure decharg','Heure Départ'];
+function normRec(rec){const g={};for(const k in rec)g[normKey(k)]=rec[k]==null?'':String(rec[k]).trim();return g;}
+function cleanCode(v){return(v&&!/^(en attente|0)$/i.test(v))?v:'';}
+function inExtract(g){return{rdv:cleanTime(g['time of delivery']||g['rdv']||''),container:cleanCode(g['container no.']||g['container no']||g['container']||''),message:(g['message']||'').trim(),sd:cleanCode(g['sd document']||g['sd']||''),qty:parseFloat(String(g['quantity']||g['quantité']||g['quantités']||'0').replace(',','.'))||0};}
+function inKey(r){return[r.rdv,r.container,r.sd,r.message].join('|');}
+function buildInRows(records){const map=new Map();records.forEach(rec=>{const g=normRec(rec);if(!Object.keys(g).length)return;const e=inExtract(g);if(!e.container&&!e.sd&&!e.qty)return;const k=[e.rdv,e.container,e.sd,e.message].join('|');if(map.has(k))map.get(k).qty+=e.qty;else map.set(k,{id:uid(),rdv:e.rdv,container:e.container,message:e.message,sd:e.sd,qty:e.qty,groupage:e.container,quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'});});return[...map.values()];}
+function mergeInRows(target,incoming,replace){if(replace)return incoming;const out=target.map(r=>Object.assign({},r));const m=new Map();out.forEach(r=>m.set(inKey(r),r));incoming.forEach(r=>{const k=inKey(r);if(m.has(k))m.get(k).qty=r.qty;else{out.push(r);m.set(k,r);}});return out;}
+const IN_FMT11=['Delivery Date','Time of delivery','Plant','LGORT','MESSAGE','Supplier','Material','Quantity','Container No.','SD Document','Reference'];
+const IN_FMT10=['Delivery Date','Time of delivery','LGORT','MESSAGE','Material','Quantity','Container No.','SD Document','Seal No.','Reference'];
+function parseInPaste(text){const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='');if(!lines.length)return[];const looksHeader=/time of delivery|container/i.test(lines[0]);if(looksHeader){const h=lines[0].split('\t').map(s=>s.trim());return lines.slice(1).map(l=>{const c=l.split('\t');const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}const H=lines[0].split('\t').length>=11?IN_FMT11:IN_FMT10;return lines.map(l=>{const c=l.split('\t');const o={};H.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
+function importIn(records,replace,dt){state.currentDate=dt;const d=dayData();const rows=buildInRows(records);d.inRows=mergeInRows(d.inRows||[],rows,replace);d.updated=new Date().toISOString();}
+function propagateIn(row){if(!row.groupage)return;dayData().inRows.forEach(r=>{if(r!==row&&r.groupage===row.groupage){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
+function renderIn(isClient){
+  const d=dayData();d.inRows=d.inRows||[];
+  $('#head').innerHTML=IN_COLS.map(c=>'<th>'+c.label+'</th>').join('')+IN_OPS.map(h=>'<th>'+h+'</th>').join('');
+  const tf=$('#transpFilter'),cur=tf.value;
+  const conts=[...new Set(d.inRows.map(r=>r.container).filter(Boolean))].sort();
+  tf.innerHTML='<option value="">Tous</option>'+conts.map(t=>'<option>'+t+'</option>').join('');tf.value=cur;
+  const q=($('#searchInput').value||'').toLowerCase(),tfv=tf.value;
+  let rows=d.inRows.filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tfv&&r.container!==tfv)return false;if(q){const b=(r.rdv+' '+r.container+' '+r.message+' '+r.sd).toLowerCase();if(!b.includes(q))return false;}return true;})
+    .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.container||'zzzz').localeCompare(b.container||'zzzz')||(a.sd||'').localeCompare(b.sd||''));
+  const body=$('#body');body.innerHTML='';
+  const empty=d.inRows.length===0;$('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
+  rows.forEach((r,i)=>{
+    const tr=document.createElement('tr');tr.className=r.statut;
+    const grouped=!!r.container,prev=rows[i-1],first=grouped&&(!prev||prev.container!==r.container);
+    if(grouped){tr.classList.add('grp');tr.style.setProperty('--grail',railColor(r.container));}
+    const count=grouped?d.inRows.filter(x=>x.container===r.container).length:0;
+    const badge=(grouped&&first&&count>1)?'<span class="grpbadge" style="background:'+railColor(r.container)+'">\u26d3 '+count+'</span>':'';
+    const dataCells=
+      '<td class="rdv">'+(r.rdv||'\u2014')+'</td>'+
+      '<td class="statecell">'+(r.container||'\u2014')+badge+'</td>'+
+      '<td class="dest">'+(r.message||'').replace(/</g,'&lt;')+'</td>'+
+      '<td class="grpcode">'+(r.sd||'')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">'+(r.qty||0)+'</td>';
+    const opEditable=!isClient&&(!grouped||first);
+    let ops;
+    if(isClient){
+      ops='<td><span class="ro '+(r.quai?'':'empty')+'">'+(r.quai||'\u2014')+'</span></td>'+
+          '<td><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'\u2014')+'</span></td>'+
+          '<td><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'\u2014')+'</span></td>'+
+          '<td><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'\u2014')+'</span></td>';
+    }else if(opEditable){
+      ops='<td class="quaicell"><input value="'+(r.quai||'')+'" data-f="quai" placeholder="\u2014"></td>'+
+          '<td class="timecell"><div class="stamp"><input value="'+(r.arrivee||'')+'" data-f="arrivee" placeholder="--:--"><button data-st="arrivee" title="Tamponner">\u23f1</button></div></td>'+
+          '<td class="timecell"><div class="stamp"><input value="'+(r.charg||'')+'" data-f="charg" placeholder="--:--"><button data-st="charg" title="Tamponner">\u23f1</button></div></td>'+
+          '<td class="timecell"><div class="stamp"><input value="'+(r.depart||'')+'" data-f="depart" placeholder="--:--"><button data-st="depart" title="Tamponner">\u23f1</button></div></td>';
+    }else{
+      ops='<td class="mirror"><span class="ro '+(r.quai?'':'empty')+'" title="Saisi sur la 1re ligne du conteneur '+r.container+'">\u21b3 '+(r.quai||'\u2014')+'</span></td>'+
+          '<td class="mirror"><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'\u2014')+'</span></td>'+
+          '<td class="mirror"><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'\u2014')+'</span></td>'+
+          '<td class="mirror"><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'\u2014')+'</span></td>';
+    }
+    tr.innerHTML=dataCells+ops;
+    if(opEditable){
+      tr.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('change',()=>{const f=inp.dataset.f;let v=inp.value;if(f!=='quai')v=cleanTime(v);r[f]=v;r.statut=autoStatus(r);propagateIn(r);touch();render();}));
+      tr.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.st;r[f]=r[f]?'':nowHM();r.statut=autoStatus(r);propagateIn(r);touch();render();}));
+    }
+    body.appendChild(tr);
+  });
+  const all=d.inRows,c={nonpresente:0,attente:0,cours:0,termine:0};all.forEach(r=>c[r.statut]++);
+  $('#stats').innerHTML=
+    '<div class="stat total '+(activeFilter===''?'':'dim')+'" data-flt=""><span class="dot"></span>Total <b>'+all.length+'</b></div>'+
+    '<div class="stat np '+(activeFilter===''||activeFilter==='nonpresente'?'':'dim')+'" data-flt="nonpresente"><span class="dot"></span>Non pr\u00e9s. <b>'+c.nonpresente+'</b></div>'+
+    '<div class="stat attente '+(activeFilter===''||activeFilter==='attente'?'':'dim')+'" data-flt="attente"><span class="dot"></span>Attente <b>'+c.attente+'</b></div>'+
+    '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
+    '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Termin\u00e9 <b>'+c.termine+'</b></div>';
+  $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
+  const totQty=all.reduce((s,r)=>s+(r.qty||0),0);
+  $('#countLine').textContent=rows.length+' ligne(s) \u00b7 '+buildUnits(all).length+' conteneur(s)/r\u00e9ception(s) \u00b7 \u03a3 '+totQty+' qt\u00e9';
+  $('#syncState').className='sync-state '+(fb.enabled?'on':'local');
+  $('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
+}
+function renderDashIn(){
+  $('#dashIntro').textContent='R\u00e9ception : respect des heures = heure r\u00e9elle \u2264 heure de livraison + tol\u00e9rance. Les conteneurs comptent pour 1 r\u00e9ception.';
+  $('#dashSec1').textContent='Par cr\u00e9neau (heure de livraison)';$('#dashSec2').textContent='Par conteneur';
+  const tol=parseInt($('#tolInput').value)||0;
+  const all=dayData().inRows||[],units=buildUnits(all);
+  $('#dashDate').textContent=fmtFR(state.currentDate);
+  const g=kpiFor(units,tol);
+  $('#dashCards').innerHTML=
+    '<div class="card"><div class="k">R\u00e9ceptions</div><div class="v">'+g.total+'</div><div class="sub">'+all.length+' lignes \u00b7 \u03a3 '+all.reduce((s,r)=>s+(r.qty||0),0)+'</div></div>'+
+    '<div class="card '+(g.presRate>=90?'good':g.presRate>=70?'warn':'bad')+'"><div class="k">Pr\u00e9sentation</div><div class="v">'+g.presRate+'%</div><div class="sub">'+g.pres+'/'+g.total+' pr\u00e9sent\u00e9s</div></div>'+
+    '<div class="card"><div class="k">D\u00e9charg\u00e9s</div><div class="v">'+g.done+'</div><div class="sub">r\u00e9ceptions termin\u00e9es</div></div>'+
+    '<div class="card '+(g.arrRate===null?'':g.arrRate>=90?'good':g.arrRate>=70?'warn':'bad')+'"><div class="k">Ponctualit\u00e9 arriv\u00e9e</div><div class="v">'+(g.arrRate===null?'\u2014':g.arrRate+'%')+'</div><div class="sub">arriv\u00e9e \u2264 livr.+'+tol+'</div></div>'+
+    '<div class="card '+(g.chgRate===null?'':g.chgRate>=90?'good':g.chgRate>=70?'warn':'bad')+'"><div class="k">Ponctualit\u00e9 d\u00e9chg.</div><div class="v">'+(g.chgRate===null?'\u2014':g.chgRate+'%')+'</div><div class="sub">d\u00e9chg. \u2264 livr.+'+tol+'</div></div>'+
+    '<div class="card"><div class="k">\u00c9cart moyen d\u00e9chg.</div><div class="v" style="font-size:22px">'+(g.avgDelay===null?'\u2014':(g.avgDelay>0?'+':'')+g.avgDelay+' min')+'</div><div class="sub">vs heure livraison</div></div>';
+  const head='<thead><tr><th>Groupe</th><th>R\u00e9ceptions</th><th>Pr\u00e9sentation</th><th>Ponct. arriv\u00e9e</th><th>Ponct. d\u00e9chg.</th><th>\u00c9cart moyen</th><th>D\u00e9charg\u00e9s</th></tr></thead>';
+  const row=(lbl,k)=>'<tr><td class="lbl">'+lbl+'</td><td>'+k.total+'</td><td>'+rateHtml(k.presRate)+'</td><td>'+rateHtml(k.arrRate)+'</td><td>'+rateHtml(k.chgRate)+'</td><td>'+delayHtml(k.avgDelay)+'</td><td>'+k.done+'</td></tr>';
+  const bySlot={};units.forEach(u=>{const t=u.rep.rdv||'(sans)';(bySlot[t]=bySlot[t]||[]).push(u);});
+  let bt=head+'<tbody>';Object.keys(bySlot).sort().forEach(t=>{bt+=row(t,kpiFor(bySlot[t],tol));});bt+='</tbody>';
+  $('#dashByType').innerHTML=bt;
+  const byC={};units.forEach(u=>{const t=u.rep.container||'(sans conteneur)';(byC[t]=byC[t]||[]).push(u);});
+  let bx=head+'<tbody>';Object.entries(byC).sort((a,b)=>(a[0]).localeCompare(b[0])).forEach(([t,us])=>bx+=row(t,kpiFor(us,tol)));bx+='</tbody>';
+  $('#dashByTransp').innerHTML=bx;
+}
+function exportInXLSX(){
+  const d=dayData();
+  const header=['Time of delivery','Container No.','MESSAGE','SD Document','Quantit\u00e9s','Quai','Heure Arriv\u00e9e','Heure decharg','Heure D\u00e9part','Statut'];
+  const data=[header];
+  d.inRows.slice().sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.container||'').localeCompare(b.container||'')).forEach(r=>data.push([r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:13},{wch:14},{wch:22},{wch:13},{wch:10},{wch:6},{wch:11},{wch:11},{wch:11},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Reception IN');XLSX.writeFile(wb,'Planning_IN_'+state.currentDate+'.xlsx');
+}
+function exportInDash(){
+  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(dayData().inRows||[]);
+  const wb=XLSX.utils.book_new();
+  const mk=groups=>{const d=[['Groupe','R\u00e9ceptions','Pr\u00e9sent\u00e9s','Tx pr\u00e9sentation %','Ponct. arriv\u00e9e %','Ponct. d\u00e9chg. %','\u00c9cart moyen (min)','D\u00e9charg\u00e9s']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,k.chgRate,k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
+  const bySlot={};units.forEach(u=>{const t=u.rep.rdv||'(sans)';(bySlot[t]=bySlot[t]||[]).push(u);});
+  const byC={};units.forEach(u=>{const t=u.rep.container||'(sans)';(byC[t]=byC[t]||[]).push(u);});
+  XLSX.utils.book_append_sheet(wb,mk(Object.entries(bySlot).sort()),'Par creneau');
+  XLSX.utils.book_append_sheet(wb,mk(Object.entries(byC).sort()),'Par conteneur');
+  XLSX.writeFile(wb,'Dashboard_reception_IN_'+state.currentDate+'.xlsx');
+}
+/* ===================== VUE COMPILÉE IN / OUT ===================== */
+const CMP_HOURS=(function(){const a=[];for(let h=1;h<=23;h++)a.push(String(h).padStart(2,'0')+':00:00');a.push('00:00:00');return a;})();
+function hourCol(rdv){if(!rdv||!/^\d{1,2}:\d{2}/.test(rdv))return null;return rdv.slice(0,2)+':00:00';}
+function cmpLabelOut(u){const r=u.rep,t=r.transporteur||'';return r.groupage?(r.groupage+' · '+u.rows.length+(t?' '+t:'')):(r.departure+(t?' '+t:''));}
+function cmpLabelIn(u){return u.rep.container||'en attente';}
+function cmpBucket(units,labeler){const m={};CMP_HOURS.forEach(h=>m[h]=[]);units.forEach(u=>{const h=hourCol(u.rep.rdv);if(h&&m[h])m[h].push({label:labeler(u),statut:u.rep.statut});});CMP_HOURS.forEach(h=>m[h].sort((x,y)=>x.label.localeCompare(y.label)));return m;}
+function renderCompiled(isClient){
+  const inB=cmpBucket(buildUnits(dayData().inRows||[]),cmpLabelIn);
+  const outB=cmpBucket(buildUnits(dayData().rows||[]),cmpLabelOut);
+  const maxIn=Math.max(10,...CMP_HOURS.map(h=>inB[h].length));
+  const maxOut=Math.max(10,...CMP_HOURS.map(h=>outB[h].length));
+  $('#head').innerHTML='<th class="cmpsec"></th><th class="cmpslot">slot</th>'+CMP_HOURS.map(h=>'<th class="cmphr">'+h.slice(0,5)+'</th>').join('');
+  const body=$('#body');body.innerHTML='';
+  function section(name,band,B,maxR){
+    for(let s=1;s<=maxR;s++){
+      const tr=document.createElement('tr');tr.className='cmprow '+band;
+      let html='';
+      if(s===1)html+='<td class="cmpsec" rowspan="'+maxR+'"><span>'+name+'</span></td>';
+      html+='<td class="cmpslot">'+s+'</td>';
+      CMP_HOURS.forEach(h=>{const cell=B[h][s-1];html+=cell?'<td class="cmpcell has '+cell.statut+'">'+cell.label.replace(/</g,'&lt;')+'</td>':'<td class="cmpcell"></td>';});
+      tr.innerHTML=html;body.appendChild(tr);
+    }
+  }
+  section('RÉCEPTION','recep',inB,maxIn);
+  section('EXPÉDITION','exped',outB,maxOut);
+  const bIn=CMP_HOURS.reduce((s,h)=>s+inB[h].length,0),bOut=CMP_HOURS.reduce((s,h)=>s+outB[h].length,0);
+  $('#stats').innerHTML=
+    '<div class="stat total"><span class="dot" style="background:var(--termine-bd)"></span>Réception <b>'+bIn+'</b></div>'+
+    '<div class="stat total"><span class="dot" style="background:var(--cours-bd)"></span>Expédition <b>'+bOut+'</b></div>'+
+    '<div class="stat total"><span class="dot"></span>Total slots <b>'+(bIn+bOut)+'</b></div>';
+  $('#countLine').textContent='Vue compilée — '+(bIn+bOut)+' créneaux bookés ('+bIn+' réception · '+bOut+' expédition)';
+  $('#emptyState').style.display='none';$('.tablewrap').style.display='block';
+  $('#syncState').className='sync-state '+(fb.enabled?'on':'local');$('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
+}
+function exportCompiled(){
+  const inB=cmpBucket(buildUnits(dayData().inRows||[]),cmpLabelIn);
+  const outB=cmpBucket(buildUnits(dayData().rows||[]),cmpLabelOut);
+  const maxIn=Math.max(10,...CMP_HOURS.map(h=>inB[h].length));
+  const maxOut=Math.max(10,...CMP_HOURS.map(h=>outB[h].length));
+  const data=[['','slot'].concat(CMP_HOURS)];
+  const push=(name,B,maxR)=>{for(let s=1;s<=maxR;s++){const line=[s===1?name:'',s];CMP_HOURS.forEach(h=>line.push((B[h][s-1]||{}).label||''));data.push(line);}};
+  push('Réception',inB,maxIn);push('Expédition',outB,maxOut);
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:12},{wch:5}].concat(CMP_HOURS.map(()=>({wch:18})));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Compile IN-OUT');XLSX.writeFile(wb,'Compile_IN-OUT_'+state.currentDate+'.xlsx');
+}
+
+(function boot(){
+  document.body.style.visibility='hidden';
+  let hashCfg=null;try{const m=(location.hash||'').match(/cfg=([^&]+)/);if(m)hashCfg=JSON.parse(decodeURIComponent(escape(atob(m[1]))));}catch(e){}
+  const baked=window.__FB_CONFIG__||hashCfg||JSON.parse(localStorage.getItem(LS_FB)||'null');
+  if(baked&&baked.databaseURL&&baked.apiKey){localStorage.setItem(LS_FB,JSON.stringify(baked));initFb(baked).then(()=>setTimeout(applySession,400));}
+  applySession();
+})();
+</script>
+</body>
+</html>
