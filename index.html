@@ -855,17 +855,22 @@ function openUnit(flux,id){
 }
 $('#uSave').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return;
   const newRdv=cleanTime($('#uRdv').value.trim());
-  if(newRdv!==(r.rdv||'')){
-    const oldRdv=r.rdv||'—';
+  const rdvChanged=newRdv!==(r.rdv||''),oldRdv=r.rdv||'—';
+  /* IMPORTANT : d'abord TOUTES les mutations, ensuite seulement la sauvegarde.
+     (Un save intermédiaire déclenche l'écho Firebase qui remplace les objets en mémoire :
+      toute mutation postérieure partirait sur une copie orpheline et serait perdue.) */
+  if(rdvChanged){
     if(!r.rdv0)r.rdv0=r.rdv;                    // mémorise l'heure d'origine (import)
-    addCommentTo(curUnit.flux,r,'🕐 RDV modifié : '+oldRdv+' → '+(newRdv||'—'));
     r.rdv=newRdv;
     // propage la nouvelle heure à tout le camion/conteneur (même RDV physique)
     const arr=curUnit.flux==='in'?dayData().inRows:dayData().rows;
     const gk=curUnit.flux==='in'?r.container:r.groupage;
     if(gk)arr.forEach(x=>{if(x!==r&&(x.cl||'')===(r.cl||'')&&(curUnit.flux==='in'?x.container:x.groupage)===gk){if(!x.rdv0)x.rdv0=x.rdv;x.rdv=newRdv;}});
   }
-  r.quai=$('#uQuai').value.trim();r.arrivee=cleanTime($('#uArr').value.trim());r.charg=cleanTime($('#uCharg').value.trim());r.depart=cleanTime($('#uDep').value.trim());r.statut=autoStatus(r);if(curUnit.flux==='in')propagateIn(r);else propagate(r);touch();save();render();if(r.quai)quaiWarn(curUnit.flux,r,r.quai);$('#unitModal').classList.remove('open');};
+  r.quai=$('#uQuai').value.trim();r.arrivee=cleanTime($('#uArr').value.trim());r.charg=cleanTime($('#uCharg').value.trim());r.depart=cleanTime($('#uDep').value.trim());r.statut=autoStatus(r);
+  if(curUnit.flux==='in')propagateIn(r);else propagate(r);
+  if(rdvChanged)addCommentTo(curUnit.flux,r,'🕐 RDV modifié : '+oldRdv+' → '+(newRdv||'—'));  // sauvegarde incluse
+  touch();save();render();if(r.quai)quaiWarn(curUnit.flux,r,r.quai);$('#unitModal').classList.remove('open');};
 document.querySelectorAll('#unitFields [data-ust]').forEach(b=>b.addEventListener('click',()=>{const inp=$('#'+b.dataset.ust);inp.value=inp.value?'':nowHM();}));
 $('#uCmtAdd').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return;const t=$('#uCmtInput').value.trim();if(!t)return;addCommentTo(curUnit.flux,r,t);$('#uCmtInput').value='';renderUnitComments(curUnit.flux,r);render();};
 $('#uCmtInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#uCmtAdd').click();}});
