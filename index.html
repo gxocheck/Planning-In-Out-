@@ -114,7 +114,22 @@
   .cmpcell.attente{background:var(--attente-bg)}
   .cmpcell.cours{background:var(--cours-bg)}
   .cmpcell.termine{background:var(--termine-bg)}
-  .cmpcell.has{outline:1px solid var(--line)}
+  .cmpcell.has{outline:1px solid var(--line);cursor:pointer}
+  .cmpcell.has:hover{filter:brightness(.97);outline:2px solid var(--cours-bd)}
+  .clcell{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);white-space:nowrap}
+  .warnicon{font-size:12px}
+  .cmtdot{font-size:11px;opacity:.85}
+  .cbtn{border:0;background:transparent;cursor:pointer;font-size:13px;padding:0 2px;margin-left:6px;vertical-align:middle;opacity:.75}
+  .cbtn:hover{opacity:1}
+  .cbtn sup{font-size:9px;font-weight:800;color:var(--cours-ink)}
+  .cmt{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;background:var(--panel2)}
+  .cmt-h{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px}
+  .cmt-b{font-size:13px;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  #scanToast{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:14px 22px;border-radius:12px;font-size:16px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.25);text-align:center;line-height:1.35}
+  #scanToast.ok{background:var(--termine-bg);color:var(--termine-ink);border:2px solid var(--termine-bd)}
+  #scanToast.ko{background:var(--attente-bg);color:var(--attente-ink);border:2px solid var(--attente-bd)}
+  #qrReader video{border-radius:10px}
+  .rdvmod{font-size:11px;margin-left:4px;cursor:help}
   .ro.empty{color:var(--muted);font-weight:500}
   .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
   .pill.nonpresente{background:var(--np-bg);color:var(--np-ink);border:1px solid var(--np-bd)}
@@ -171,6 +186,7 @@
   .urole{font-size:10px;font-weight:800;text-transform:uppercase;border-radius:6px;padding:2px 8px;letter-spacing:.4px}
   .urole.exploitation{background:var(--accent-soft);color:var(--accent)}
   .urole.client{background:var(--termine-bg);color:var(--termine-ink)}
+  .urole.admin{background:var(--attente-bg);color:var(--attente-ink)}
 
   .authbox{max-width:420px;text-align:center}
   .authbox .logo{width:54px;height:54px;font-size:18px;border-radius:14px;margin:0 auto 14px}
@@ -210,6 +226,7 @@
   <div class="toolbar" id="toolbar">
     <div class="field"><label>Date du planning</label><input type="date" id="dateInput"></div>
     <div class="field search"><label>Recherche</label><input type="text" id="searchInput" placeholder="Départ, transporteur, destinataire…"></div>
+    <div class="field" id="clientFilterField"><label>Client</label><select id="clientFilter"><option value="">Tous les clients</option></select></div>
     <div class="field"><label id="filterLabel">Transporteur</label><select id="transpFilter"><option value="">Tous</option></select></div>
     <div class="stats" id="stats"></div>
     <div class="spacer"></div>
@@ -217,7 +234,10 @@
     <button class="btn" id="importBtn">⬆ Importer</button>
     <button class="btn" id="crBtn">🏷️ CR client</button>
     <button class="btn" id="exportBtn">⬇ Export</button>
+    <button class="btn" id="slotBtn" title="Réglage administrateur des slots">⚙️ Slots</button>
     <button class="btn" id="printBtn">🖨</button>
+    <button class="btn" id="scanBtn">📷 Scanner</button>
+    <button class="btn" id="labelsBtn">🏷️ Étiquettes</button>
     <button class="btn" id="usersBtn">👤 Utilisateurs</button>
     <button class="btn" id="syncBtn">🔗 Sync</button>
   </div>
@@ -249,7 +269,7 @@
 
 <div class="overlay" id="setupModal"><div class="modal authbox">
   <div class="logo">GXO</div><h3>Première configuration</h3>
-  <p>Crée le premier compte <b>Exploitation</b> (administrateur). Tu pourras ensuite ajouter d'autres comptes exploitation et client.</p>
+  <p>Crée le premier compte <b>Administrateur</b>. Lui seul pourra créer / importer les autres comptes (exploitation et client).</p>
   <div class="row2" style="margin-bottom:10px"><input id="setupLabel" placeholder="Nom (ex: Mickael)"><input id="setupCode" placeholder="Code d'accès" type="password"></div>
   <div class="err" id="setupErr"></div>
   <div class="modal-actions"><button class="btn primary" id="setupSave">Créer le compte</button></div>
@@ -269,12 +289,13 @@
   <div class="row2" style="margin-bottom:12px">
     <button class="btn" id="fileBtn">📂 Choisir un fichier .xlsx</button>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+    <div class="field"><label>Client</label><input id="importClient" list="clientDatalist" placeholder="Nom du client (ex: SAMSUNG)" style="min-width:170px"><datalist id="clientDatalist"></datalist></div>
     <div class="field"><label>Date cible du planning</label><input type="date" id="importDate"></div>
   </div>
   <textarea id="pasteArea" placeholder="Colle ici (en-têtes inclus). Formats reconnus : export complet (N° Departure…) ou format client (DEPARTURE / RDV / …)"></textarea>
   <div class="hint" id="importHint"><b>Quai, Heure Arrivée, Heure charg, Heure Départ</b> restent vides → statut « Non présenté » (ligne blanche). Une ré-importation conserve les saisies (matching Départ + RDV + Destinataire).</div>
   <div class="modal-actions">
-    <label style="display:flex;align-items:center;gap:7px;margin-right:auto;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="replaceChk"> Remplacer entièrement</label>
+    <label style="display:flex;align-items:center;gap:7px;margin-right:auto;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="replaceChk"> Remplacer entièrement (le client sélectionné uniquement)</label>
     <button class="btn ghost" data-close>Annuler</button>
     <button class="btn primary" id="doImport">Importer</button>
   </div>
@@ -302,17 +323,86 @@
 
 <div class="overlay" id="usersModal"><div class="modal">
   <h3>Gestion des accès</h3>
-  <p>Les comptes <b>Exploitation</b> peuvent saisir et tout administrer. Les comptes <b>Client</b> ouvrent uniquement la vue consultation (aucun accès exploitation).</p>
+  <p><b>Administrateur</b> : tout gérer (comptes, sync, slots). <b>Exploitation</b> : saisie du planning. <b>Client</b> : consultation + export uniquement.</p>
   <div class="userlist" id="userList"></div>
   <div class="dashsection">Ajouter un compte</div>
   <div class="row2" style="margin-bottom:8px">
     <input id="nuLabel" placeholder="Nom / société">
     <input id="nuCode" placeholder="Code d'accès" type="text">
-    <select id="nuRole"><option value="exploitation">Exploitation</option><option value="client">Client</option></select>
+    <select id="nuRole"><option value="client">Client</option><option value="exploitation">Exploitation</option><option value="admin">Administrateur</option></select>
+    <input id="nuClient" list="clientDatalist2" placeholder="Client (si rôle Client)" style="min-width:150px"><datalist id="clientDatalist2"></datalist>
     <button class="btn primary" id="nuAdd">Ajouter</button>
   </div>
+  <div class="dashsection">Création multiple (par fichier)</div>
+  <div class="row2" style="margin-bottom:8px">
+    <button class="btn" id="uTemplateBtn">⬇ Exporter la trame</button>
+    <button class="btn" id="uImportBtn">📂 Importer une liste</button>
+    <input type="file" id="uImportFile" accept=".xlsx,.xls,.csv" style="display:none">
+  </div>
+  <div class="hint">Trame à 4 colonnes : <b>Nom, Code, Rôle</b> (client / exploitation / admin), <b>Client</b>. Envoie-la au client pour qu'il liste ses postes, puis réimporte le fichier — chaque ligne crée un compte (doublons de code ignorés).</div>
   <div class="err" id="usersErr"></div>
   <div class="hint">Sécurité : contrôle d'accès par code (interne). Les codes ne sont pas stockés en clair mais ce n'est pas du chiffrement fort — pour un niveau bancaire il faudrait Firebase Auth.</div>
+  <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button></div>
+</div></div>
+
+<div class="overlay" id="slotModal"><div class="modal">
+  <h3>⚙️ Slots — réglage administrateur</h3>
+  <p>Nombre de slots (positions) affichés par créneau sur la vue compilée. La grille s'étend automatiquement si un créneau dépasse ce nombre, pour ne rien masquer.</p>
+  <div class="row2" style="margin-bottom:10px">
+    <div class="field"><label>Slots Réception (IN)</label><input type="number" id="slotsInInput" min="1" max="30" style="width:90px"></div>
+    <div class="field"><label>Slots Expédition (OUT)</label><input type="number" id="slotsOutInput" min="1" max="30" style="width:90px"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button><button class="btn primary" id="slotSave">Enregistrer</button></div>
+</div></div>
+
+<div class="overlay" id="unitModal"><div class="modal">
+  <h3 id="unitTitle">Saisie</h3>
+  <p id="unitSub" style="color:var(--muted);margin-top:-4px"></p>
+  <div class="row2" id="unitFields" style="margin-bottom:8px">
+    <div class="field"><label>RDV <span id="uRdvOrig" style="font-weight:400;color:var(--muted)"></span></label><input id="uRdv" placeholder="--:--" style="width:80px"></div>
+    <div class="field"><label>Quai</label><input id="uQuai" placeholder="—" style="width:80px"></div>
+    <div class="field"><label>Heure arrivée</label><div class="stamp"><input id="uArr" placeholder="--:--" style="width:78px"><button data-ust="uArr" title="Tamponner l'heure actuelle">⏱</button></div></div>
+    <div class="field"><label id="uChargLbl">Heure charg.</label><div class="stamp"><input id="uCharg" placeholder="--:--" style="width:78px"><button data-ust="uCharg" title="Tamponner l'heure actuelle">⏱</button></div></div>
+    <div class="field"><label>Heure départ</label><div class="stamp"><input id="uDep" placeholder="--:--" style="width:78px"><button data-ust="uDep" title="Tamponner l'heure actuelle">⏱</button></div></div>
+  </div>
+  <div class="modal-actions" id="unitOpActions" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" id="uLabel" style="margin-right:auto">🏷️ Imprimer l'étiquette</button><button class="btn primary" id="uSave">Enregistrer les heures</button></div>
+  <div class="dashsection">Commentaires (historique par RDV)</div>
+  <div class="userlist" id="uCmtList" style="max-height:34vh;overflow:auto"></div>
+  <div class="row2" id="uCmtAddRow" style="margin-top:8px">
+    <input id="uCmtInput" placeholder="Ajouter un commentaire…" style="flex:1">
+    <button class="btn primary" id="uCmtAdd">Ajouter</button>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button></div>
+</div></div>
+
+<div class="overlay" id="scanOnlyModal"><div class="modal authbox">
+  <div class="logo">GXO</div><h3 id="soTitle">Pointage en cours…</h3>
+  <div id="soBody" style="font-size:15px;line-height:1.5;margin:10px 0;color:var(--ink)">Recherche du RDV…</div>
+  <div class="modal-actions" style="justify-content:center;flex-wrap:wrap;gap:8px">
+    <button class="btn" id="soAgain" style="display:none">📷 Scanner un autre code</button>
+    <button class="btn ghost" id="soLogin">Se connecter au planning</button>
+  </div>
+  <div class="hint" style="text-align:center">Pointage sans compte : l'étiquette du dossier vaut autorisation. Vous pouvez fermer cette page.</div>
+</div></div>
+
+<div class="overlay" id="scanModal"><div class="modal">
+  <h3>📷 Scan chargement / déchargement</h3>
+  <p>Scanne l'étiquette du dossier (QR ou code-barres). <b>Douchette</b> : scanne directement, même fenêtre fermée — l'heure se tamponne toute seule. <b>Caméra</b> : démarre-la ci-dessous (smartphone/tablette).</p>
+  <div class="row2" style="margin-bottom:8px;align-items:flex-end">
+    <div class="field"><label>Action au scan</label>
+      <select id="scanMode">
+        <option value="auto">Auto (arrivée → début → départ)</option>
+        <option value="arrivee">Heure arrivée</option>
+        <option value="charg">Début charg./décharg.</option>
+        <option value="depart">Heure départ</option>
+      </select></div>
+    <button class="btn primary" id="camStart">▶ Démarrer la caméra</button>
+    <button class="btn ghost" id="camStop" style="display:none">⏹ Arrêter</button>
+  </div>
+  <div id="qrReader" style="width:100%;max-width:420px;margin:0 auto"></div>
+  <div class="dashsection">Saisie manuelle / test douchette</div>
+  <div class="row2"><input id="scanInput" placeholder="Scanne ici ou tape le code (ex: DB330074225, ECMU7198106)" style="flex:1"><button class="btn primary" id="scanGo">Valider</button></div>
+  <div class="err" id="scanErr"></div>
   <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button></div>
 </div></div>
 
@@ -360,8 +450,10 @@ let state=load()||{theme:'light',mode:'exploitation',flux:'out',currentDate:toda
 if(!state.users)state.users=[];
 if(!state.flux)state.flux='out';
 if(!state.crMap)state.crMap={};
+if(!state.settings)state.settings={slotsIn:10,slotsOut:10};
 if(Object.keys(state.crMap).length===0)state.crMap=Object.assign({},DEFAULT_CRMAP);
-let session=JSON.parse(localStorage.getItem(LS_SESS)||'null');
+let session=null;
+let appReady=false;
 let fb={enabled:false,db:null,ref:null,uref:null,cref:null,suppress:false,cfg:null};
 let activeFilter='';
 
@@ -373,32 +465,50 @@ function save(){localStorage.setItem(LS,JSON.stringify(state));pushFb();}
 function fmtFR(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
 function uid(){return Math.random().toString(36).slice(2,9);}
 function $(s){return document.querySelector(s);}
-function dayData(){const d=state.days[state.currentDate]=state.days[state.currentDate]||{rows:[],updated:null};if(!d.inRows)d.inRows=[];if(!d.inCols)d.inCols=null;return d;}
+function dayData(){const d=state.days[state.currentDate]=state.days[state.currentDate]||{rows:[],updated:null};if(!d.inRows)d.inRows=[];if(!d.inCols)d.inCols=null;if(!d.comments)d.comments={};return d;}
+function isFoulee(t){return /foul[ée]e/i.test(t||'');}
+function cmtKey(flux,r){const c=(r.cl||'')+':';if(flux==='in')return 'I'+c+(r.container?('C:'+r.container):('R:'+(r.rdv||'')+'|'+(r.sd||r.id)));return 'O'+c+(r.groupage?('G:'+r.groupage):('D:'+(r.departure||r.id)+'|'+(r.rdv||'')));}
+function getComments(flux,r){return dayData().comments[cmtKey(flux,r)]||[];}
+function addCommentTo(flux,r,text){const k=cmtKey(flux,r);const arr=dayData().comments[k]=dayData().comments[k]||[];arr.push({t:new Date().toISOString(),by:(session&&session.label)||(session&&(session.role==='client'?'Client':'Exploitation'))||'—',text:text});touch();save();}
 function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return(h>>>0).toString(16);}
 function toMin(hm){if(!hm||!/^\d{1,2}:\d{2}$/.test(hm))return null;const p=hm.split(':');return(+p[0])*60+(+p[1]);}
 function railColor(code){let s=0;for(const c of code)s+=c.charCodeAt(0);return GRAIL[s%GRAIL.length];}
 
 function autoStatus(r){if(r.depart)return'termine';if(r.charg)return'cours';if(r.arrivee||r.quai)return'attente';return'nonpresente';}
-function propagate(row){if(!row.groupage)return;dayData().rows.forEach(r=>{if(r!==row&&r.groupage===row.groupage){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
+function propagate(row){if(!row.groupage)return;dayData().rows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
 function setStamp(row,f){row[f]=row[f]?'':nowHM();row.statut=autoStatus(row);propagate(row);touch();render();}
 function touch(){dayData().updated=new Date().toISOString();save();}
 
 function normKey(s){return(s||'').toString().trim().toLowerCase().replace(/\s+/g,' ');}
 function cleanTime(v){if(!v)return'';v=String(v).trim();if(/^0?\.\d+$/.test(v)){const f=parseFloat(v),mins=Math.round(f*1440);return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}const m=v.match(/(\d{1,2})[:hH](\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:v;}
-function buildRow(o){return{id:uid(),departure:o.departure||'',rdv:o.rdv||'',transporteur:o.transporteur||'',groupage:o.groupage||'',destinataire:o.destinataire||'',destcode:o.destcode||'',cr:o.cr||'',quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'};}
+function buildRow(o){return{id:uid(),cl:o.cl||'',departure:o.departure||'',rdv:o.rdv||'',rdv0:o.rdv||'',transporteur:o.transporteur||'',groupage:o.groupage||'',destinataire:o.destinataire||'',destcode:o.destcode||'',cr:o.cr||'',quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'};}
+/* ---- Multiclient ----
+   Chaque ligne IN/OUT porte un client (cl), affecté à l'import.
+   Comptes Client : cloisonnés sur leur client. Exploitation/Admin : tout voient + filtre. */
+function sessionClient(){return(session&&session.role==='client'&&session.client)?session.client:'';}
+function clientScope(){const sc=sessionClient();if(sc)return sc;return($('#clientFilter')&&$('#clientFilter').value)||'';}
+function knownClients(){const s=new Set();(state.clients||[]).forEach(c=>s.add(c));const d=dayData();d.rows.forEach(r=>{if(r.cl)s.add(r.cl);});d.inRows.forEach(r=>{if(r.cl)s.add(r.cl);});state.users.forEach(u=>{if(u.client)s.add(u.client);});return[...s].sort();}
+function scopedRows(){const sc=clientScope();return sc?dayData().rows.filter(r=>(r.cl||'')===sc):dayData().rows;}
+function scopedInRows(){const sc=clientScope();return sc?dayData().inRows.filter(r=>(r.cl||'')===sc):dayData().inRows;}
 /* CR client = paramétré par code destinataire (colonne L). Le mapping est la source de vérité. */
 function seedCrMap(rows){rows.forEach(r=>{if(r.destcode&&r.cr&&state.crMap[r.destcode]===undefined)state.crMap[r.destcode]=r.cr;});}
 function applyCrMap(){Object.values(state.days).forEach(d=>d.rows.forEach(r=>{if(r.destcode&&state.crMap[r.destcode]!==undefined)r.cr=state.crMap[r.destcode];}));}
 function mapRecords(records){return records.map(r=>{const g={};for(const k in r)g[normKey(k)]=r[k];const pick=function(){for(var i=0;i<arguments.length;i++){var k=arguments[i];if(g[k]!==undefined&&String(g[k]).trim()!=='')return String(g[k]).trim();}return'';};return buildRow({departure:pick('n° departure','no departure','departure','départ'),rdv:cleanTime(pick('heure de chargement','rdv','heure charg.','heure chargement')),transporteur:pick('transporteur l2 (facturation)','transporteur','transporteur l2'),groupage:pick('group','groupage','groupe'),destinataire:pick('destinataire description','destinataire'),destcode:pick('destinataire code','code destinataire','destcode'),cr:pick('cr','cr client')});}).filter(r=>r.departure);}
 function parseTSV(text){const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='');if(lines.length<2)return[];const h=lines[0].split('\t');return lines.slice(1).map(l=>{const c=l.split('\t');const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
-function mergeRows(target,incoming,replace){if(replace)return incoming;const keyOf=r=>[r.departure,r.rdv,r.destinataire].join('|');const ex=new Map();target.forEach(r=>{const k=keyOf(r);(ex.get(k)||ex.set(k,[]).get(k)).push(r);});return incoming.map(r=>{const p=ex.get(keyOf(r));if(p&&p.length){const o=p.shift();return Object.assign({},r,{id:o.id,quai:o.quai,arrivee:o.arrivee,charg:o.charg,depart:o.depart,statut:o.statut});}return r;});}
+function mergeRows(target,incoming,replace,cl){
+  cl=cl||'';
+  const others=target.filter(r=>(r.cl||'')!==cl);           // les autres clients ne sont jamais touchés
+  const mine=target.filter(r=>(r.cl||'')===cl);
+  if(replace)return others.concat(incoming);
+  const keyOf=r=>[r.departure,(r.rdv0||r.rdv),r.destinataire].join('|');const ex=new Map();mine.forEach(r=>{const k=keyOf(r);(ex.get(k)||ex.set(k,[]).get(k)).push(r);});
+  return others.concat(incoming.map(r=>{const p=ex.get(keyOf(r));if(p&&p.length){const o=p.shift();return Object.assign({},r,{id:o.id,quai:o.quai,arrivee:o.arrivee,charg:o.charg,depart:o.depart,statut:o.statut,rdv:o.rdv,rdv0:o.rdv0||o.rdv});}return r;}));}
 
-function buildUnits(rows){const map=new Map();rows.forEach(r=>{const k=r.groupage?('G:'+r.groupage):('R:'+r.id);(map.get(k)||map.set(k,[]).get(k)).push(r);});return[...map.values()].map(g=>({rows:g,rep:g[0]}));}
+function buildUnits(rows){const map=new Map();rows.forEach(r=>{const k=r.groupage?('G:'+(r.cl||'')+':'+r.groupage):('R:'+r.id);(map.get(k)||map.set(k,[]).get(k)).push(r);});return[...map.values()].map(g=>({rows:g,rep:g[0]}));}
 function kpiFor(units,tol){let total=units.length,pres=0,done=0,aOn=0,aN=0,cOn=0,cN=0,dS=0,dN=0;units.forEach(u=>{const r=u.rep,rdv=toMin(r.rdv);if(r.arrivee||r.quai||r.charg||r.depart)pres++;if(r.depart)done++;const a=toMin(r.arrivee);if(rdv!=null&&a!=null){aN++;if(a<=rdv+tol)aOn++;}const c=toMin(r.charg);if(rdv!=null&&c!=null){cN++;if(c<=rdv+tol)cOn++;dS+=c-rdv;dN++;}});return{total,pres,done,presRate:total?Math.round(pres/total*100):0,arrRate:aN?Math.round(aOn/aN*100):null,chgRate:cN?Math.round(cOn/cN*100):null,avgDelay:dN?Math.round(dS/dN):null};}
 
 const COLS=['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','QUAI','H. ARRIVÉE','H. CHARG.','H. DÉPART','STATUT'];
-function visibleRows(){const d=dayData(),q=($('#searchInput').value||'').toLowerCase(),tf=$('#transpFilter').value;
-  return d.rows.filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tf&&r.transporteur!==tf)return false;if(q){const b=(r.departure+' '+r.transporteur+' '+r.destinataire+' '+r.groupage+' '+r.cr).toLowerCase();if(!b.includes(q))return false;}return true;})
+function visibleRows(){const q=($('#searchInput').value||'').toLowerCase(),tf=$('#transpFilter').value;
+  return scopedRows().filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tf&&r.transporteur!==tf)return false;if(q){const b=(r.departure+' '+r.transporteur+' '+r.destinataire+' '+r.groupage+' '+r.cr+' '+(r.cl||'')).toLowerCase();if(!b.includes(q))return false;}return true;})
   .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.groupage||'zzzz').localeCompare(b.groupage||'zzzz')||a.departure.localeCompare(b.departure));}
 
 function render(){
@@ -407,18 +517,29 @@ function render(){
   if(session&&session.role==='client')state.mode='client';
   const isClient=state.mode==='client';
   $('#dateInput').value=state.currentDate;
-  $('#who').innerHTML=session?session.label+'<span class="badge">'+(session.role==='client'?'Client':'Exploitation')+'</span>':'';
-  $('#modeSeg').style.display=(session&&session.role==='exploitation')?'inline-flex':'none';
+  $('#who').innerHTML=session?session.label+(session.client?' · '+session.client:'')+'<span class="badge">'+(session.role==='client'?'Client':session.role==='admin'?'Admin':'Exploitation')+'</span>':'';
+  $('#modeSeg').style.display=(session&&session.role!=='client')?'inline-flex':'none';
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===state.mode));
   $('#clientBanner').style.display=isClient?'flex':'none';
-  $('#toolbar').style.display=isClient?'none':'flex';
   if(isClient){$('#clientDate').textContent=fmtFR(state.currentDate);const u=dayData().updated;$('#lastUpdate').textContent=u?new Date(u).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'—';}
 
   document.querySelectorAll('#fluxSeg button').forEach(b=>b.classList.toggle('on',b.dataset.flux===state.flux));
   const isCmp=state.flux==='cmp';
-  $('#crBtn').style.display=state.flux==='out'?'':'none';
-  $('#importBtn').style.display=isCmp?'none':'';
-  $('#dashBtn').style.display=isCmp?'none':'';
+  const isAdmin=!!(session&&session.role==='admin');
+  $('#toolbar').style.display='flex';
+  $('#dashBtn').style.display=(!isClient&&!isCmp)?'':'none';
+  $('#importBtn').style.display=(!isClient&&!isCmp)?'':'none';
+  $('#crBtn').style.display=(!isClient&&state.flux==='out')?'':'none';
+  $('#usersBtn').style.display=isAdmin?'':'none';
+  $('#syncBtn').style.display=isAdmin?'':'none';
+  $('#slotBtn').style.display=(isAdmin&&isCmp)?'':'none';
+  $('#exportBtn').style.display='';$('#printBtn').style.display='';
+  $('#scanBtn').style.display=isClient?'none':'';
+  $('#labelsBtn').style.display=(!isClient&&!isCmp)?'':'none';
+  // Filtre client : exploitation/admin uniquement (les comptes Client sont cloisonnés d'office)
+  const cf=$('#clientFilter');
+  $('#clientFilterField').style.display=sessionClient()?'none':'';
+  if(!sessionClient()){const cur=cf.value;const cls=knownClients();cf.innerHTML='<option value="">Tous les clients</option>'+cls.map(c=>'<option>'+c+'</option>').join('');cf.value=cur;}
   $('#searchInput').closest('.field').style.display=isCmp?'none':'';
   $('#transpFilter').closest('.field').style.display=isCmp?'none':'';
   $('#filterLabel').textContent=state.flux==='in'?'Conteneur':'Transporteur';
@@ -426,30 +547,35 @@ function render(){
   if(isCmp){renderCompiled(isClient);return;}
   if(state.flux==='in'){renderIn(isClient);return;}
 
-  $('#head').innerHTML=COLS.map(c=>'<th>'+c+'</th>').join('');
+  const multiCl=!clientScope()&&knownClients().length>1;
+  $('#head').innerHTML=(multiCl?'<th>CLIENT</th>':'')+COLS.map(c=>'<th>'+c+'</th>').join('');
   const tf=$('#transpFilter'),cur=tf.value;
-  const transps=[...new Set(dayData().rows.map(r=>r.transporteur).filter(Boolean))].sort();
+  const transps=[...new Set(scopedRows().map(r=>r.transporteur).filter(Boolean))].sort();
   tf.innerHTML='<option value="">Tous</option>'+transps.map(t=>'<option>'+t+'</option>').join('');tf.value=cur;
 
   const rows=visibleRows(),body=$('#body');body.innerHTML='';
-  const empty=dayData().rows.length===0;
+  const empty=scopedRows().length===0;
   $('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
 
   rows.forEach((r,i)=>{
     const tr=document.createElement('tr');tr.className=r.statut;
     const grouped=!!r.groupage;
     const prev=rows[i-1];
-    const first=grouped&&(!prev||prev.groupage!==r.groupage);
-    if(grouped){tr.classList.add('grp');tr.style.setProperty('--grail',railColor(r.groupage));}
-    const count=grouped?dayData().rows.filter(x=>x.groupage===r.groupage).length:0;
-    const badge=first?'<span class="grpbadge" style="background:'+railColor(r.groupage)+'">⛓ '+r.groupage+' · '+count+'</span>':'';
+    const first=grouped&&(!prev||prev.groupage!==r.groupage||(prev.cl||'')!==(r.cl||''));
+    if(grouped){tr.classList.add('grp');tr.style.setProperty('--grail',railColor((r.cl||'')+r.groupage));}
+    const count=grouped?dayData().rows.filter(x=>x.groupage===r.groupage&&(x.cl||'')===(r.cl||'')).length:0;
+    const badge=first?'<span class="grpbadge" style="background:'+railColor((r.cl||'')+r.groupage)+'">⛓ '+r.groupage+' · '+count+'</span>':'';
+    const clCell=multiCl?'<td class="clcell">'+((r.cl||'—').replace(/</g,'&lt;'))+'</td>':'';
+    const warn=isFoulee(r.cr)?'<span class="warnicon" title="En foulée — chargement/livraison en foulée">⚠️</span> ':'';
+    const showCmt=(!grouped||first),nc=getComments('out',r).length;
+    const cmtBtn=showCmt?'<button class="cbtn" data-open="'+r.id+'" title="Détails & commentaires">💬'+(nc?'<sup>'+nc+'</sup>':'')+'</button>':'';
 
     if(isClient){
-      tr.innerHTML=
-        '<td class="statecell">'+r.departure+badge+'</td>'+
-        '<td class="rdv">'+(r.rdv||'—')+'</td><td>'+(r.transporteur||'—')+'</td>'+
+      tr.innerHTML=clCell+
+        '<td class="statecell">'+r.departure+badge+cmtBtn+'</td>'+
+        '<td class="rdv">'+(r.rdv||'—')+(r.rdv0&&r.rdv0!==r.rdv?'<span class="rdvmod" title="RDV d\'origine : '+r.rdv0+'">🕐</span>':'')+'</td><td>'+(r.transporteur||'—')+'</td>'+
         '<td class="grpcode">'+(r.groupage||'')+'</td><td class="dest">'+(r.destinataire||'—')+'</td>'+
-        '<td class="cr">'+(r.cr||'')+'</td>'+
+        '<td class="cr">'+warn+(r.cr||'')+'</td>'+
         '<td><span class="ro '+(r.quai?'':'empty')+'">'+(r.quai||'—')+'</span></td>'+
         '<td><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'—')+'</span></td>'+
         '<td><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'—')+'</span></td>'+
@@ -457,11 +583,11 @@ function render(){
         '<td><span class="pill '+r.statut+'">'+STATUSES[r.statut]+'</span></td>';
     }else{
       const opEditable=!grouped||first;
-      const head=
-        '<td class="statecell">'+r.departure+badge+'</td>'+
-        '<td class="rdv">'+(r.rdv||'—')+'</td><td>'+(r.transporteur||'—')+'</td>'+
+      const head=clCell+
+        '<td class="statecell">'+r.departure+badge+cmtBtn+'</td>'+
+        '<td class="rdv">'+(r.rdv||'—')+(r.rdv0&&r.rdv0!==r.rdv?'<span class="rdvmod" title="RDV d\'origine : '+r.rdv0+'">🕐</span>':'')+'</td><td>'+(r.transporteur||'—')+'</td>'+
         '<td class="grpcode">'+(r.groupage||'')+'</td><td class="dest">'+(r.destinataire||'—')+'</td>'+
-        '<td class="cr"><input value="'+(r.cr||'').replace(/"/g,'&quot;')+'" data-f="cr" style="width:200px"></td>';
+        '<td class="cr">'+warn+'<input value="'+(r.cr||'').replace(/"/g,'&quot;')+'" data-f="cr" style="width:184px"></td>';
       let ops;
       if(opEditable){
         ops=
@@ -492,18 +618,19 @@ function render(){
         tr.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>setStamp(r,b.dataset.st)));
       }
     }
+    const cb=tr.querySelector('.cbtn');if(cb)cb.addEventListener('click',()=>openUnit('out',r.id));
     body.appendChild(tr);
   });
 
-  const all=dayData().rows,c={nonpresente:0,attente:0,cours:0,termine:0};all.forEach(r=>c[r.statut]++);
+  const all=scopedRows(),units=buildUnits(all),c={nonpresente:0,attente:0,cours:0,termine:0};units.forEach(u=>c[u.rep.statut]++);
   $('#stats').innerHTML=
-    '<div class="stat total '+(activeFilter===''?'':'dim')+'" data-flt=""><span class="dot"></span>Total <b>'+all.length+'</b></div>'+
+    '<div class="stat total '+(activeFilter===''?'':'dim')+'" data-flt=""><span class="dot"></span>Total <b>'+units.length+'</b></div>'+
     '<div class="stat np '+(activeFilter===''||activeFilter==='nonpresente'?'':'dim')+'" data-flt="nonpresente"><span class="dot"></span>Non prés. <b>'+c.nonpresente+'</b></div>'+
     '<div class="stat attente '+(activeFilter===''||activeFilter==='attente'?'':'dim')+'" data-flt="attente"><span class="dot"></span>Attente <b>'+c.attente+'</b></div>'+
     '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
     '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Terminé <b>'+c.termine+'</b></div>';
   $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
-  $('#countLine').textContent=rows.length+' ligne(s) · '+buildUnits(all).length+' camion(s) · '+all.length+' commande(s)';
+  $('#countLine').textContent=units.length+' départ(s) (groupage = 1) · '+rows.length+' ligne(s) affichée(s) · '+all.length+' commande(s)';
   $('#syncState').className='sync-state '+(fb.enabled?'on':'local');
   $('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
 }
@@ -516,8 +643,8 @@ function renderDash(){
   $('#dashIntro').textContent='Respect des heures = heure réelle ≤ RDV + tolérance. Les groupages comptent pour 1 camion.';
   $('#dashSec1').textContent='Par type de départ (DB / DW)';$('#dashSec2').textContent='Par transporteur';
   const tol=parseInt($('#tolInput').value)||0;
-  const all=dayData().rows,units=buildUnits(all);
-  $('#dashDate').textContent=fmtFR(state.currentDate);
+  const all=scopedRows(),units=buildUnits(all);
+  $('#dashDate').textContent=fmtFR(state.currentDate)+(clientScope()?' — '+clientScope():' — tous clients');
   const g=kpiFor(units,tol);
   $('#dashCards').innerHTML=
     '<div class="card"><div class="k">Camions</div><div class="v">'+g.total+'</div><div class="sub">'+all.length+' commandes</div></div>'+
@@ -539,7 +666,7 @@ function renderDash(){
 }
 function exportDash(){
   if(state.flux==='in'){exportInDash();return;}
-  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(dayData().rows);
+  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(scopedRows());
   const wb=XLSX.utils.book_new();
   const mk=groups=>{const d=[['Groupe','Camions','Présentés','Tx présentation %','Ponct. arrivée %','Ponct. charg. %','Écart moyen (min)','Terminés']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,k.chgRate,k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
   const types={};units.forEach(u=>{const t=(u.rep.departure||'').slice(0,2).toUpperCase();(types[t]=types[t]||[]).push(u);});
@@ -552,9 +679,9 @@ function exportDash(){
 function exportXLSX(){
   if(state.flux==='cmp'){exportCompiled();return;}
   if(state.flux==='in'){exportInXLSX();return;}
-  const rows=visibleRows();const data=[['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','Quai','Heure Arrivée','Heure charg','Heure Départ','Statut']];
-  rows.forEach(r=>data.push([r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
-  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:7},{wch:18},{wch:13},{wch:30},{wch:30},{wch:6},{wch:11},{wch:10},{wch:10},{wch:12}];
+  const rows=visibleRows();const data=[['CLIENT','DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','Quai','Heure Arrivée','Heure charg','Heure Départ','Statut']];
+  rows.forEach(r=>data.push([r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:14},{wch:7},{wch:18},{wch:13},{wch:30},{wch:30},{wch:6},{wch:11},{wch:10},{wch:10},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Planning');XLSX.writeFile(wb,'Planning_IN-OUT_'+state.currentDate+'.xlsx');
 }
 
@@ -563,14 +690,15 @@ async function initFb(cfg){
   try{
     if(!window.firebase){await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');}
     const app=window.firebase.initializeApp({apiKey:cfg.apiKey,databaseURL:cfg.databaseURL,projectId:cfg.projectId,appId:cfg.appId},'app_'+Date.now());
-    fb.db=window.firebase.database(app);fb.enabled=true;fb.cfg=cfg;subUsers();subCrMap();subData();return true;
+    fb.db=window.firebase.database(app);fb.enabled=true;fb.cfg=cfg;subUsers();subCrMap();subSettings();subData();return true;
   }catch(e){alert('Connexion Firebase impossible.\n'+e.message);fb.enabled=false;return false;}
 }
 function fbDataPath(){return 'planning/'+state.currentDate;}
-function pushFb(){if(!fb.enabled||fb.suppress)return;if(session&&session.role==='client')return;try{fb.db.ref(fbDataPath()).set(dayData());fb.db.ref('meta/users').set(state.users);fb.db.ref('meta/crmap').set(state.crMap);}catch(e){}}
+function pushFb(){if(!fb.enabled||fb.suppress)return;if(session&&session.role==='client')return;try{fb.db.ref(fbDataPath()).set(dayData());fb.db.ref('meta/users').set(state.users);fb.db.ref('meta/crmap').set(state.crMap);fb.db.ref('meta/settings').set(state.settings);fb.db.ref('meta/clients').set(state.clients||[]);}catch(e){}}
 function subData(){if(fb.ref)fb.ref.off();if(!fb.enabled)return;fb.ref=fb.db.ref(fbDataPath());fb.ref.on('value',s=>{const v=s.val();if(!v)return;fb.suppress=true;state.days[state.currentDate]=v;localStorage.setItem(LS,JSON.stringify(state));render();fb.suppress=false;});}
-function subUsers(){if(fb.uref)fb.uref.off();if(!fb.enabled)return;fb.uref=fb.db.ref('meta/users');fb.uref.on('value',s=>{const v=s.val();if(v){state.users=v;localStorage.setItem(LS,JSON.stringify(state));}});}
+function subUsers(){if(fb.uref)fb.uref.off();if(!fb.enabled)return;fb.uref=fb.db.ref('meta/users');fb.uref.on('value',s=>{const v=s.val();if(v){state.users=v;localStorage.setItem(LS,JSON.stringify(state));}applySession();});}
 function subCrMap(){if(fb.cref)fb.cref.off();if(!fb.enabled)return;fb.cref=fb.db.ref('meta/crmap');fb.cref.on('value',s=>{const v=s.val();if(v){state.crMap=v;localStorage.setItem(LS,JSON.stringify(state));applyCrMap();render();}});}
+function subSettings(){if(fb.sref)fb.sref.off();if(!fb.enabled)return;fb.sref=fb.db.ref('meta/settings');fb.sref.on('value',s=>{const v=s.val();if(v){state.settings=v;localStorage.setItem(LS,JSON.stringify(state));if(state.flux==='cmp')render();}});fb.clref=fb.db.ref('meta/clients');fb.clref.on('value',s=>{const v=s.val();if(v){state.clients=v;localStorage.setItem(LS,JSON.stringify(state));}});}
 function buildClientFile(){
   const cfg=JSON.parse(localStorage.getItem(LS_FB)||'null');
   if(!cfg){alert('Active d\'abord la sync.');return;}
@@ -582,33 +710,59 @@ function buildClientFile(){
 }
 
 function findUser(code){const h=hash(code);return state.users.find(u=>u.h===h);}
+function ensureAdmin(){if(state.users.length&&!state.users.some(u=>u.role==='admin')){const e=state.users.find(u=>u.role==='exploitation')||state.users[0];if(e)e.role='admin';}}
 function applySession(){
+  appReady=true;ensureAdmin();
   const needSetup=state.users.length===0;
+  if(window.__pendingScan&&!session&&!needSetup){document.body.style.visibility='visible';startScanOnly();return;}
   $('#setupModal').classList.toggle('open',needSetup);
   $('#loginModal').classList.toggle('open',!needSetup&&!session);
-  if(session){if(session.role==='client')state.mode='client';render();}
+  if(session){if(session.role==='client')state.mode='client';render();
+    if(window.__pendingScan){const ps=window.__pendingScan;window.__pendingScan=null;setTimeout(()=>stampFromScan(ps),fb.enabled?1300:150);}
+  }
   document.body.style.visibility='visible';
 }
 function logout(){session=null;localStorage.removeItem(LS_SESS);state.mode='exploitation';applySession();}
 
 function renderUsers(){
-  $('#userList').innerHTML=state.users.map((u,i)=>'<div class="u"><b>'+(u.label||'—')+'</b><span class="urole '+u.role+'">'+u.role+'</span><span class="spacer" style="flex:1"></span><button class="btn danger" data-del="'+i+'">Supprimer</button></div>').join('')||'<div class="u" style="color:var(--muted)">Aucun compte</div>';
+  $('#userList').innerHTML=state.users.map((u,i)=>'<div class="u"><b>'+(u.label||'—')+'</b>'+(u.client?'<span class="urole" style="background:var(--panel2)">'+u.client+'</span>':'')+'<span class="urole '+u.role+'">'+u.role+'</span><span class="spacer" style="flex:1"></span><button class="btn danger" data-del="'+i+'">Supprimer</button></div>').join('')||'<div class="u" style="color:var(--muted)">Aucun compte</div>';
   $('#userList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.del,u=state.users[i];
-    if(u.role==='exploitation'&&state.users.filter(x=>x.role==='exploitation').length<=1){$('#usersErr').textContent='Impossible : il faut au moins un compte exploitation.';return;}
+    if(u.role==='admin'&&state.users.filter(x=>x.role==='admin').length<=1){$('#usersErr').textContent='Impossible : il faut au moins un compte administrateur.';return;}
     state.users.splice(i,1);save();renderUsers();});
+}
+function exportUserTemplate(){
+  const data=[['Nom','Code','Rôle','Client'],['Poste 1 (exemple)','CODE001','client','Nom du client'],['Poste 2 (exemple)','CODE002','client','Nom du client']];
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:26},{wch:14},{wch:14},{wch:22}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Utilisateurs');XLSX.writeFile(wb,'trame_utilisateurs.xlsx');
+}
+function importUsers(records){
+  let added=0,skipped=0,bad=0;
+  records.forEach(rec=>{const g={};for(const k in rec)g[k.toString().trim().toLowerCase()]=String(rec[k]==null?'':rec[k]).trim();
+    const code=g['code']||g["code d'accès"]||g['code d’accès']||'';
+    const label=g['nom']||g['nom / société']||g['label']||g['société']||'';
+    let role=(g['rôle']||g['role']||'client').toLowerCase();if(role.startsWith('adm'))role='admin';else if(role.startsWith('expl'))role='exploitation';else role='client';
+    const client=g['client']||'';
+    if(!code){bad++;return;}
+    if(role==='client'&&!client){bad++;return;}
+    if(state.users.some(u=>u.h===hash(code))){skipped++;return;}
+    state.users.push({h:hash(code),role,label:label||'—',client:role==='client'?client:''});if(client&&!(state.clients||[]).includes(client))state.clients=(state.clients||[]).concat([client]);added++;});
+  save();renderUsers();
+  $('#usersErr').textContent=added+' compte(s) ajouté(s)'+(skipped?' · '+skipped+' doublon(s)':'')+(bad?' · '+bad+' ligne(s) sans code':'');
 }
 
 $('#themeBtn').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();render();};
 $('#logoutBtn').onclick=logout;
-$('#modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(session&&session.role!=='exploitation')return;state.mode=b.dataset.mode;render();});
+$('#modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(session&&session.role==='client')return;state.mode=b.dataset.mode;render();});
 $('#fluxSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.flux=b.dataset.flux;activeFilter='';if($('#searchInput'))$('#searchInput').value='';if($('#transpFilter'))$('#transpFilter').value='';save();render();});
 $('#dateInput').onchange=e=>{state.currentDate=e.target.value;activeFilter='';if(fb.enabled)subData();render();};
-$('#searchInput').oninput=render;$('#transpFilter').onchange=render;
+$('#searchInput').oninput=render;$('#transpFilter').onchange=render;$('#clientFilter').onchange=render;
 $('#printBtn').onclick=()=>window.print();$('#exportBtn').onclick=exportXLSX;
 $('#dashBtn').onclick=()=>{renderDash();$('#dashModal').classList.add('open');};
 $('#tolInput').oninput=renderDash;$('#dashExport').onclick=exportDash;
 $('#importBtn').onclick=()=>{$('#importDate').value=state.currentDate;const isIn=state.flux==='in';
+  $('#clientDatalist').innerHTML=knownClients().map(c=>'<option value="'+c.replace(/"/g,'&quot;')+'">').join('');
+  const cf=$('#clientFilter').value;if(cf)$('#importClient').value=cf;
   $('#importTitle').textContent=isIn?'Importer les fichiers de réception (IN)':'Importer la base du jour';
   $('#importDesc').textContent=isIn?"Charge le .xlsx de réception ou colle les lignes (avec ou sans en-têtes). Les deux formats (avec/sans Seal No.) sont reconnus.":'Colle les lignes copiées depuis Excel (en-têtes inclus) ou charge le fichier .xlsx.';
   $('#importHint').innerHTML=isIn?"Les lignes Material sont <b>agrégées</b> par heure + Container No. + SD Document + MESSAGE (<b>Quantités sommées</b>). Regroupement opérationnel par conteneur : Quai / Arrivée / Déchargement / Départ saisis une seule fois par conteneur. Vides → « Non présenté ».":'<b>Quai, Heure Arrivée, Heure charg, Heure Départ</b> restent vides → statut « Non présenté » (ligne blanche). Une ré-importation conserve les saisies (matching Départ + RDV + Destinataire).';
@@ -617,17 +771,25 @@ $('#emptyImport').onclick=()=>$('#importBtn').click();
 $('#fileBtn').onclick=()=>$('#fileInput').click();
 $('#fileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];window.__rec=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});$('#pasteArea').value='✓ '+f.name+' — '+window.__rec.length+' ligne(s). Clique « Importer ».';};rd.readAsBinaryString(f);};
 $('#doImport').onclick=()=>{const dt=$('#importDate').value||state.currentDate;const pasted=($('#pasteArea').value||'').trim();
+  const cl=($('#importClient').value||'').trim();
+  if(!cl){alert('Indique le client concerné par ce fichier.');return;}
+  if(!(state.clients||[]).includes(cl)){state.clients=(state.clients||[]).concat([cl]);}
   if(state.flux==='in'){
     let recs=window.__rec||(pasted&&!pasted.startsWith('✓')?parseInPaste(pasted):null);
     if(!recs||!recs.length){alert('Colle des données ou charge un fichier.');return;}
-    importIn(recs,$('#replaceChk').checked,dt);
+    importIn(recs,$('#replaceChk').checked,dt,cl);
   }else{
     let rec=window.__rec;if(!rec){if(!pasted||pasted.startsWith('✓')){alert('Colle des données ou charge un fichier.');return;}rec=parseTSV(pasted);}
-    const rows=mapRecords(rec);if(!rows.length){alert('Aucune ligne valide (en-têtes inclus ?).');return;}seedCrMap(rows);state.currentDate=dt;const d=(state.days[dt]=state.days[dt]||{rows:[],updated:null});d.rows=mergeRows(d.rows,rows,$('#replaceChk').checked);applyCrMap();d.updated=new Date().toISOString();
+    const rows=mapRecords(rec);if(!rows.length){alert('Aucune ligne valide (en-têtes inclus ?).');return;}
+    rows.forEach(r=>r.cl=cl);
+    seedCrMap(rows);state.currentDate=dt;const d=(state.days[dt]=state.days[dt]||{rows:[],updated:null});d.rows=mergeRows(d.rows,rows,$('#replaceChk').checked,cl);applyCrMap();d.updated=new Date().toISOString();
   }
   window.__rec=null;$('#pasteArea').value='';$('#replaceChk').checked=false;$('#fileInput').value='';save();if(fb.enabled)subData();$('#importModal').classList.remove('open');activeFilter='';render();};
-$('#usersBtn').onclick=()=>{$('#usersErr').textContent='';renderUsers();$('#usersModal').classList.add('open');};
-$('#nuAdd').onclick=()=>{const label=$('#nuLabel').value.trim(),code=$('#nuCode').value.trim(),role=$('#nuRole').value;if(!code){$('#usersErr').textContent='Saisis un code.';return;}if(state.users.some(u=>u.h===hash(code))){$('#usersErr').textContent='Ce code existe déjà.';return;}state.users.push({h:hash(code),role,label});save();$('#nuLabel').value='';$('#nuCode').value='';$('#usersErr').textContent='';renderUsers();};
+$('#usersBtn').onclick=()=>{$('#usersErr').textContent='';$('#clientDatalist2').innerHTML=knownClients().map(c=>'<option value="'+c.replace(/"/g,'&quot;')+'">').join('');renderUsers();$('#usersModal').classList.add('open');};
+$('#nuAdd').onclick=()=>{const label=$('#nuLabel').value.trim(),code=$('#nuCode').value.trim(),role=$('#nuRole').value,client=$('#nuClient').value.trim();if(!code){$('#usersErr').textContent='Saisis un code.';return;}if(role==='client'&&!client){$('#usersErr').textContent='Indique le client rattaché à ce compte (cloisonnement).';return;}if(state.users.some(u=>u.h===hash(code))){$('#usersErr').textContent='Ce code existe déjà.';return;}state.users.push({h:hash(code),role,label,client:role==='client'?client:''});if(client&&!(state.clients||[]).includes(client))state.clients=(state.clients||[]).concat([client]);save();$('#nuLabel').value='';$('#nuCode').value='';$('#nuClient').value='';$('#usersErr').textContent='';renderUsers();};
+$('#uTemplateBtn').onclick=exportUserTemplate;
+$('#uImportBtn').onclick=()=>$('#uImportFile').click();
+$('#uImportFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];const recs=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});importUsers(recs);}catch(err){$('#usersErr').textContent='Fichier illisible.';}$('#uImportFile').value='';};rd.readAsBinaryString(f);};
 
 function renderCrMap(){
   const entries=Object.entries(state.crMap).sort((a,b)=>(DEST_LABELS[a[0]]||a[0]).localeCompare(DEST_LABELS[b[0]]||b[0]));
@@ -639,16 +801,62 @@ function renderCrMap(){
 $('#crBtn').onclick=()=>{$('#crErr').textContent='';renderCrMap();$('#crModal').classList.add('open');};
 $('#crAdd').onclick=()=>{const code=$('#crNewCode').value.trim(),lbl=$('#crNewLbl').value.trim();if(!code){$('#crErr').textContent='Saisis un code destinataire.';return;}state.crMap[code]=lbl;applyCrMap();save();$('#crNewCode').value='';$('#crNewLbl').value='';$('#crErr').textContent='';renderCrMap();render();};
 $('#crReload').onclick=()=>{if(!confirm('Recharger la base CR par défaut ? Les codes de la base seront remis à leur valeur d\'origine (tes ajouts manuels sur d\'autres codes sont conservés).'))return;Object.assign(state.crMap,DEFAULT_CRMAP);applyCrMap();save();renderCrMap();render();};
+
+// ---- Modale unité : saisie quai/heures + commentaires historisés par RDV ----
+let curUnit={flux:null,id:null};
+function findRow(flux,id){const arr=flux==='in'?dayData().inRows:dayData().rows;return arr.find(r=>r.id===id);}
+function renderUnitComments(flux,r){
+  const list=getComments(flux,r).slice().reverse();
+  $('#uCmtList').innerHTML=list.length?list.map(c=>'<div class="cmt"><div class="cmt-h"><b>'+(c.by||'—')+'</b><span>'+new Date(c.t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span></div><div class="cmt-b">'+(c.text||'').replace(/</g,'&lt;')+'</div></div>').join(''):'<div class="cmt" style="color:var(--muted)">Aucun commentaire pour ce RDV.</div>';
+}
+function openUnit(flux,id){
+  const r=findRow(flux,id);if(!r)return;
+  curUnit={flux,id};
+  const isClient=state.mode==='client';
+  const name=flux==='in'?(r.container||'Réception'):(r.groupage?r.groupage:(r.departure||'Départ'));
+  const sub=(r.cl?r.cl+' · ':'')+(flux==='in'?((r.message?r.message+' · ':'')+(r.sd?'SD '+r.sd+' · ':'')+'RDV '+(r.rdv||'—')):((r.transporteur?r.transporteur+' · ':'')+(r.destinataire?r.destinataire+' · ':'')+'RDV '+(r.rdv||'—')));
+  $('#unitTitle').textContent=(flux==='in'?'📥 ':'📤 ')+name;
+  $('#unitSub').textContent=sub;
+  $('#uChargLbl').textContent=flux==='in'?'Heure décharg.':'Heure charg.';
+  $('#uRdv').value=r.rdv||'';$('#uRdvOrig').textContent=(r.rdv0&&r.rdv0!==r.rdv)?'(origine '+r.rdv0+')':'';
+  $('#uQuai').value=r.quai||'';$('#uArr').value=r.arrivee||'';$('#uCharg').value=r.charg||'';$('#uDep').value=r.depart||'';
+  const dis=isClient;['uRdv','uQuai','uArr','uCharg','uDep'].forEach(i=>$('#'+i).disabled=dis);
+  $('#unitFields').style.display='flex';
+  $('#unitOpActions').style.display=isClient?'none':'flex';
+  $('#uCmtAddRow').style.display=isClient?'none':'flex';
+  renderUnitComments(flux,r);
+  $('#unitModal').classList.add('open');
+}
+$('#uSave').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return;
+  const newRdv=cleanTime($('#uRdv').value.trim());
+  if(newRdv!==(r.rdv||'')){
+    const oldRdv=r.rdv||'—';
+    if(!r.rdv0)r.rdv0=r.rdv;                    // mémorise l'heure d'origine (import)
+    addCommentTo(curUnit.flux,r,'🕐 RDV modifié : '+oldRdv+' → '+(newRdv||'—'));
+    r.rdv=newRdv;
+    // propage la nouvelle heure à tout le camion/conteneur (même RDV physique)
+    const arr=curUnit.flux==='in'?dayData().inRows:dayData().rows;
+    const gk=curUnit.flux==='in'?r.container:r.groupage;
+    if(gk)arr.forEach(x=>{if(x!==r&&(x.cl||'')===(r.cl||'')&&(curUnit.flux==='in'?x.container:x.groupage)===gk){if(!x.rdv0)x.rdv0=x.rdv;x.rdv=newRdv;}});
+  }
+  r.quai=$('#uQuai').value.trim();r.arrivee=cleanTime($('#uArr').value.trim());r.charg=cleanTime($('#uCharg').value.trim());r.depart=cleanTime($('#uDep').value.trim());r.statut=autoStatus(r);if(curUnit.flux==='in')propagateIn(r);else propagate(r);touch();save();render();$('#unitModal').classList.remove('open');};
+document.querySelectorAll('#unitFields [data-ust]').forEach(b=>b.addEventListener('click',()=>{const inp=$('#'+b.dataset.ust);inp.value=inp.value?'':nowHM();}));
+$('#uCmtAdd').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return;const t=$('#uCmtInput').value.trim();if(!t)return;addCommentTo(curUnit.flux,r,t);$('#uCmtInput').value='';renderUnitComments(curUnit.flux,r);render();};
+$('#uCmtInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#uCmtAdd').click();}});
+
+// ---- Slots (admin) ----
+$('#slotBtn').onclick=()=>{$('#slotsInInput').value=(state.settings&&state.settings.slotsIn)||10;$('#slotsOutInput').value=(state.settings&&state.settings.slotsOut)||10;$('#slotModal').classList.add('open');};
+$('#slotSave').onclick=()=>{const si=Math.max(1,Math.min(30,parseInt($('#slotsInInput').value)||10)),so=Math.max(1,Math.min(30,parseInt($('#slotsOutInput').value)||10));state.settings={slotsIn:si,slotsOut:so};save();$('#slotModal').classList.remove('open');render();};
 $('#linkCopy').onclick=()=>{const c=JSON.parse(localStorage.getItem(LS_FB)||'null');if(!c||!c.databaseURL){alert('Active d\'abord la sync Firebase.');return;}const base=location.href.split('#')[0];const url=base+'#cfg='+btoa(unescape(encodeURIComponent(JSON.stringify(c))));const done=()=>alert('Lien copié.\n\nToute personne qui ouvre ce lien (fichier hébergé) voit le live et se connecte avec son code. Pense à héberger ce fichier sur GitHub Pages ou ton intranet.');if(navigator.clipboard)navigator.clipboard.writeText(url).then(done,()=>prompt('Copie ce lien :',url));else prompt('Copie ce lien :',url);};
 $('#syncBtn').onclick=()=>{const c=JSON.parse(localStorage.getItem(LS_FB)||'{}');$('#fbUrl').value=c.databaseURL||'';$('#fbKey').value=c.apiKey||'';$('#fbProj').value=c.projectId||'';$('#fbApp').value=c.appId||'';$('#syncModal').classList.add('open');};
 $('#fbSave').onclick=async()=>{const cfg={databaseURL:$('#fbUrl').value.trim(),apiKey:$('#fbKey').value.trim(),projectId:$('#fbProj').value.trim(),appId:$('#fbApp').value.trim()};if(!cfg.databaseURL||!cfg.apiKey){alert('databaseURL et apiKey requis.');return;}if(await initFb(cfg)){localStorage.setItem(LS_FB,JSON.stringify(cfg));pushFb();render();$('#syncModal').classList.remove('open');alert('Sync activée. Génère maintenant le « Fichier client à héberger ».');}};
 $('#fbDisable').onclick=()=>{if(fb.ref)fb.ref.off();if(fb.uref)fb.uref.off();fb.enabled=false;localStorage.removeItem(LS_FB);$('#syncModal').classList.remove('open');render();};
 $('#fbBuild').onclick=buildClientFile;
-$('#setupSave').onclick=()=>{const label=$('#setupLabel').value.trim(),code=$('#setupCode').value.trim();if(!code){$('#setupErr').textContent='Saisis un code.';return;}state.users.push({h:hash(code),role:'exploitation',label:label||'Admin'});session={role:'exploitation',label:label||'Admin'};localStorage.setItem(LS_SESS,JSON.stringify(session));save();$('#setupModal').classList.remove('open');applySession();};
-$('#loginBtn').onclick=()=>{const code=$('#loginCode').value.trim(),u=findUser(code);if(!u){$('#loginErr').textContent='Code invalide.';return;}session={role:u.role,label:u.label};localStorage.setItem(LS_SESS,JSON.stringify(session));$('#loginCode').value='';$('#loginErr').textContent='';$('#loginModal').classList.remove('open');if(u.role==='client')state.mode='client';applySession();};
+$('#setupSave').onclick=()=>{const label=$('#setupLabel').value.trim(),code=$('#setupCode').value.trim();if(!code){$('#setupErr').textContent='Saisis un code.';return;}state.users.push({h:hash(code),role:'admin',label:label||'Admin',client:''});session={role:'admin',label:label||'Admin'};localStorage.setItem(LS_SESS,JSON.stringify(session));save();$('#setupModal').classList.remove('open');applySession();};
+$('#loginBtn').onclick=()=>{const code=$('#loginCode').value.trim(),u=findUser(code);if(!u){$('#loginErr').textContent='Code invalide.';return;}session={role:u.role,label:u.label,client:u.client||''};localStorage.setItem(LS_SESS,JSON.stringify(session));$('#loginCode').value='';$('#loginErr').textContent='';$('#loginModal').classList.remove('open');if(u.role==='client')state.mode='client';applySession();};
 $('#loginCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
 $('#setupCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#setupSave').click();});
-document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.overlay').classList.remove('open'));
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{const o=b.closest('.overlay');o.classList.remove('open');if(o.id==='scanModal'&&typeof stopCam==='function')stopCam();});
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o&&o.id!=='setupModal'&&o.id!=='loginModal')o.classList.remove('open');}));
 setInterval(()=>{if(state.mode==='client'&&!fb.enabled){const fr=load();if(fr){state.days=fr.days;render();}}},4000);
 
@@ -662,34 +870,38 @@ const IN_OPS=['Quai','Heure Arrivée','Heure decharg','Heure Départ'];
 function normRec(rec){const g={};for(const k in rec)g[normKey(k)]=rec[k]==null?'':String(rec[k]).trim();return g;}
 function cleanCode(v){return(v&&!/^(en attente|0)$/i.test(v))?v:'';}
 function inExtract(g){return{rdv:cleanTime(g['time of delivery']||g['rdv']||''),container:cleanCode(g['container no.']||g['container no']||g['container']||''),message:(g['message']||'').trim(),sd:cleanCode(g['sd document']||g['sd']||''),qty:parseFloat(String(g['quantity']||g['quantité']||g['quantités']||'0').replace(',','.'))||0};}
-function inKey(r){return[r.rdv,r.container,r.sd,r.message].join('|');}
-function buildInRows(records){const map=new Map();records.forEach(rec=>{const g=normRec(rec);if(!Object.keys(g).length)return;const e=inExtract(g);if(!e.container&&!e.sd&&!e.qty)return;const k=[e.rdv,e.container,e.sd,e.message].join('|');if(map.has(k))map.get(k).qty+=e.qty;else map.set(k,{id:uid(),rdv:e.rdv,container:e.container,message:e.message,sd:e.sd,qty:e.qty,groupage:e.container,quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'});});return[...map.values()];}
-function mergeInRows(target,incoming,replace){if(replace)return incoming;const out=target.map(r=>Object.assign({},r));const m=new Map();out.forEach(r=>m.set(inKey(r),r));incoming.forEach(r=>{const k=inKey(r);if(m.has(k))m.get(k).qty=r.qty;else{out.push(r);m.set(k,r);}});return out;}
+function inKey(r){return[(r.cl||''),(r.rdv0||r.rdv),r.container,r.sd,r.message].join('|');}
+function buildInRows(records,cl){cl=cl||'';const map=new Map();records.forEach(rec=>{const g=normRec(rec);if(!Object.keys(g).length)return;const e=inExtract(g);if(!e.container&&!e.sd&&!e.qty)return;const k=[cl,e.rdv,e.container,e.sd,e.message].join('|');if(map.has(k))map.get(k).qty+=e.qty;else map.set(k,{id:uid(),cl:cl,rdv:e.rdv,rdv0:e.rdv,container:e.container,message:e.message,sd:e.sd,qty:e.qty,groupage:e.container,quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'});});return[...map.values()];}
+function mergeInRows(target,incoming,replace,cl){cl=cl||'';const others=target.filter(r=>(r.cl||'')!==cl);const mine=target.filter(r=>(r.cl||'')===cl);if(replace)return others.concat(incoming);const out=mine.map(r=>Object.assign({},r));const m=new Map();out.forEach(r=>m.set(inKey(r),r));incoming.forEach(r=>{const k=inKey(r);if(m.has(k))m.get(k).qty=r.qty;else{out.push(r);m.set(k,r);}});return others.concat(out);}
 const IN_FMT11=['Delivery Date','Time of delivery','Plant','LGORT','MESSAGE','Supplier','Material','Quantity','Container No.','SD Document','Reference'];
 const IN_FMT10=['Delivery Date','Time of delivery','LGORT','MESSAGE','Material','Quantity','Container No.','SD Document','Seal No.','Reference'];
 function parseInPaste(text){const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='');if(!lines.length)return[];const looksHeader=/time of delivery|container/i.test(lines[0]);if(looksHeader){const h=lines[0].split('\t').map(s=>s.trim());return lines.slice(1).map(l=>{const c=l.split('\t');const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}const H=lines[0].split('\t').length>=11?IN_FMT11:IN_FMT10;return lines.map(l=>{const c=l.split('\t');const o={};H.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
-function importIn(records,replace,dt){state.currentDate=dt;const d=dayData();const rows=buildInRows(records);d.inRows=mergeInRows(d.inRows||[],rows,replace);d.updated=new Date().toISOString();}
-function propagateIn(row){if(!row.groupage)return;dayData().inRows.forEach(r=>{if(r!==row&&r.groupage===row.groupage){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
+function importIn(records,replace,dt,cl){state.currentDate=dt;const d=dayData();const rows=buildInRows(records,cl);d.inRows=mergeInRows(d.inRows||[],rows,replace,cl);d.updated=new Date().toISOString();}
+function propagateIn(row){if(!row.groupage)return;dayData().inRows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
 function renderIn(isClient){
   const d=dayData();d.inRows=d.inRows||[];
-  $('#head').innerHTML=IN_COLS.map(c=>'<th>'+c.label+'</th>').join('')+IN_OPS.map(h=>'<th>'+h+'</th>').join('');
+  const scoped=scopedInRows();
+  const multiCl=!clientScope()&&knownClients().length>1;
+  $('#head').innerHTML=(multiCl?'<th>CLIENT</th>':'')+IN_COLS.map(c=>'<th>'+c.label+'</th>').join('')+IN_OPS.map(h=>'<th>'+h+'</th>').join('');
   const tf=$('#transpFilter'),cur=tf.value;
-  const conts=[...new Set(d.inRows.map(r=>r.container).filter(Boolean))].sort();
+  const conts=[...new Set(scoped.map(r=>r.container).filter(Boolean))].sort();
   tf.innerHTML='<option value="">Tous</option>'+conts.map(t=>'<option>'+t+'</option>').join('');tf.value=cur;
   const q=($('#searchInput').value||'').toLowerCase(),tfv=tf.value;
-  let rows=d.inRows.filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tfv&&r.container!==tfv)return false;if(q){const b=(r.rdv+' '+r.container+' '+r.message+' '+r.sd).toLowerCase();if(!b.includes(q))return false;}return true;})
-    .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.container||'zzzz').localeCompare(b.container||'zzzz')||(a.sd||'').localeCompare(b.sd||''));
+  let rows=scoped.filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tfv&&r.container!==tfv)return false;if(q){const b=(r.rdv+' '+r.container+' '+r.message+' '+r.sd+' '+(r.cl||'')).toLowerCase();if(!b.includes(q))return false;}return true;})
+    .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.cl||'').localeCompare(b.cl||'')||(a.container||'zzzz').localeCompare(b.container||'zzzz')||(a.sd||'').localeCompare(b.sd||''));
   const body=$('#body');body.innerHTML='';
-  const empty=d.inRows.length===0;$('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
+  const empty=scoped.length===0;$('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
   rows.forEach((r,i)=>{
     const tr=document.createElement('tr');tr.className=r.statut;
-    const grouped=!!r.container,prev=rows[i-1],first=grouped&&(!prev||prev.container!==r.container);
+    const grouped=!!r.container,prev=rows[i-1],first=grouped&&(!prev||prev.container!==r.container||(prev.cl||'')!==(r.cl||''));
     if(grouped){tr.classList.add('grp');tr.style.setProperty('--grail',railColor(r.container));}
-    const count=grouped?d.inRows.filter(x=>x.container===r.container).length:0;
+    const count=grouped?scoped.filter(x=>x.container===r.container&&(x.cl||'')===(r.cl||'')).length:0;
     const badge=(grouped&&first&&count>1)?'<span class="grpbadge" style="background:'+railColor(r.container)+'">\u26d3 '+count+'</span>':'';
-    const dataCells=
-      '<td class="rdv">'+(r.rdv||'\u2014')+'</td>'+
-      '<td class="statecell">'+(r.container||'\u2014')+badge+'</td>'+
+    const showCmt=(!grouped||first),nc=getComments('in',r).length;
+    const cmtBtn=showCmt?'<button class="cbtn" data-open="'+r.id+'" title="Détails & commentaires">💬'+(nc?'<sup>'+nc+'</sup>':'')+'</button>':'';
+    const dataCells=(multiCl?'<td class="clcell">'+((r.cl||'—').replace(/</g,'&lt;'))+'</td>':'')+
+      '<td class="rdv">'+(r.rdv||'\u2014')+(r.rdv0&&r.rdv0!==r.rdv?'<span class="rdvmod" title="RDV d\'origine : '+r.rdv0+'">🕐</span>':'')+'</td>'+
+      '<td class="statecell">'+(r.container||'\u2014')+badge+cmtBtn+'</td>'+
       '<td class="dest">'+(r.message||'').replace(/</g,'&lt;')+'</td>'+
       '<td class="grpcode">'+(r.sd||'')+'</td>'+
       '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">'+(r.qty||0)+'</td>';
@@ -716,11 +928,12 @@ function renderIn(isClient){
       tr.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('change',()=>{const f=inp.dataset.f;let v=inp.value;if(f!=='quai')v=cleanTime(v);r[f]=v;r.statut=autoStatus(r);propagateIn(r);touch();render();}));
       tr.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.st;r[f]=r[f]?'':nowHM();r.statut=autoStatus(r);propagateIn(r);touch();render();}));
     }
+    const cb=tr.querySelector('.cbtn');if(cb)cb.addEventListener('click',()=>openUnit('in',r.id));
     body.appendChild(tr);
   });
-  const all=d.inRows,c={nonpresente:0,attente:0,cours:0,termine:0};all.forEach(r=>c[r.statut]++);
+  const all=scoped,units=buildUnits(all),c={nonpresente:0,attente:0,cours:0,termine:0};units.forEach(u=>c[u.rep.statut]++);
   $('#stats').innerHTML=
-    '<div class="stat total '+(activeFilter===''?'':'dim')+'" data-flt=""><span class="dot"></span>Total <b>'+all.length+'</b></div>'+
+    '<div class="stat total '+(activeFilter===''?'':'dim')+'" data-flt=""><span class="dot"></span>Total <b>'+units.length+'</b></div>'+
     '<div class="stat np '+(activeFilter===''||activeFilter==='nonpresente'?'':'dim')+'" data-flt="nonpresente"><span class="dot"></span>Non pr\u00e9s. <b>'+c.nonpresente+'</b></div>'+
     '<div class="stat attente '+(activeFilter===''||activeFilter==='attente'?'':'dim')+'" data-flt="attente"><span class="dot"></span>Attente <b>'+c.attente+'</b></div>'+
     '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
@@ -735,8 +948,8 @@ function renderDashIn(){
   $('#dashIntro').textContent='R\u00e9ception : respect des heures = heure r\u00e9elle \u2264 heure de livraison + tol\u00e9rance. Les conteneurs comptent pour 1 r\u00e9ception.';
   $('#dashSec1').textContent='Par cr\u00e9neau (heure de livraison)';$('#dashSec2').textContent='Par conteneur';
   const tol=parseInt($('#tolInput').value)||0;
-  const all=dayData().inRows||[],units=buildUnits(all);
-  $('#dashDate').textContent=fmtFR(state.currentDate);
+  const all=scopedInRows(),units=buildUnits(all);
+  $('#dashDate').textContent=fmtFR(state.currentDate)+(clientScope()?' — '+clientScope():' — tous clients');
   const g=kpiFor(units,tol);
   $('#dashCards').innerHTML=
     '<div class="card"><div class="k">R\u00e9ceptions</div><div class="v">'+g.total+'</div><div class="sub">'+all.length+' lignes \u00b7 \u03a3 '+all.reduce((s,r)=>s+(r.qty||0),0)+'</div></div>'+
@@ -756,14 +969,14 @@ function renderDashIn(){
 }
 function exportInXLSX(){
   const d=dayData();
-  const header=['Time of delivery','Container No.','MESSAGE','SD Document','Quantit\u00e9s','Quai','Heure Arriv\u00e9e','Heure decharg','Heure D\u00e9part','Statut'];
+  const header=['Client','Time of delivery','Container No.','MESSAGE','SD Document','Quantit\u00e9s','Quai','Heure Arriv\u00e9e','Heure decharg','Heure D\u00e9part','Statut'];
   const data=[header];
-  d.inRows.slice().sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.container||'').localeCompare(b.container||'')).forEach(r=>data.push([r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
-  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:13},{wch:14},{wch:22},{wch:13},{wch:10},{wch:6},{wch:11},{wch:11},{wch:11},{wch:12}];
+  scopedInRows().slice().sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.cl||'').localeCompare(b.cl||'')||(a.container||'').localeCompare(b.container||'')).forEach(r=>data.push([r.cl||'',r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:13},{wch:14},{wch:22},{wch:13},{wch:10},{wch:6},{wch:11},{wch:11},{wch:11},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Reception IN');XLSX.writeFile(wb,'Planning_IN_'+state.currentDate+'.xlsx');
 }
 function exportInDash(){
-  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(dayData().inRows||[]);
+  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(scopedInRows());
   const wb=XLSX.utils.book_new();
   const mk=groups=>{const d=[['Groupe','R\u00e9ceptions','Pr\u00e9sent\u00e9s','Tx pr\u00e9sentation %','Ponct. arriv\u00e9e %','Ponct. d\u00e9chg. %','\u00c9cart moyen (min)','D\u00e9charg\u00e9s']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,k.chgRate,k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
   const bySlot={};units.forEach(u=>{const t=u.rep.rdv||'(sans)';(bySlot[t]=bySlot[t]||[]).push(u);});
@@ -775,14 +988,15 @@ function exportInDash(){
 /* ===================== VUE COMPILÉE IN / OUT ===================== */
 const CMP_HOURS=(function(){const a=[];for(let h=1;h<=23;h++)a.push(String(h).padStart(2,'0')+':00:00');a.push('00:00:00');return a;})();
 function hourCol(rdv){if(!rdv||!/^\d{1,2}:\d{2}/.test(rdv))return null;return rdv.slice(0,2)+':00:00';}
-function cmpLabelOut(u){const r=u.rep,t=r.transporteur||'';return r.groupage?(r.groupage+' · '+u.rows.length+(t?' '+t:'')):(r.departure+(t?' '+t:''));}
-function cmpLabelIn(u){return u.rep.container||'en attente';}
-function cmpBucket(units,labeler){const m={};CMP_HOURS.forEach(h=>m[h]=[]);units.forEach(u=>{const h=hourCol(u.rep.rdv);if(h&&m[h])m[h].push({label:labeler(u),statut:u.rep.statut});});CMP_HOURS.forEach(h=>m[h].sort((x,y)=>x.label.localeCompare(y.label)));return m;}
+function cmpLabelOut(u){const r=u.rep,t=r.transporteur||'';const base=r.groupage?(r.groupage+' · '+u.rows.length+(t?' '+t:'')):(r.departure+(t?' '+t:''));return(!clientScope()&&r.cl)?('['+r.cl+'] '+base):base;}
+function cmpLabelIn(u){const base=u.rep.container||'en attente';return(!clientScope()&&u.rep.cl)?('['+u.rep.cl+'] '+base):base;}
+function cmpBucket(units,labeler,flux){const m={};CMP_HOURS.forEach(h=>m[h]=[]);units.forEach(u=>{const h=hourCol(u.rep.rdv);if(h&&m[h])m[h].push({label:labeler(u),statut:u.rep.statut,id:u.rep.id,flux:flux,cr:u.rep.cr||'',cmt:getComments(flux,u.rep).length});});CMP_HOURS.forEach(h=>m[h].sort((x,y)=>x.label.localeCompare(y.label)));return m;}
 function renderCompiled(isClient){
-  const inB=cmpBucket(buildUnits(dayData().inRows||[]),cmpLabelIn);
-  const outB=cmpBucket(buildUnits(dayData().rows||[]),cmpLabelOut);
-  const maxIn=Math.max(10,...CMP_HOURS.map(h=>inB[h].length));
-  const maxOut=Math.max(10,...CMP_HOURS.map(h=>outB[h].length));
+  const inB=cmpBucket(buildUnits(scopedInRows()),cmpLabelIn,"in");
+  const outB=cmpBucket(buildUnits(scopedRows()),cmpLabelOut,"out");
+  const slotsIn=(state.settings&&state.settings.slotsIn)||10,slotsOut=(state.settings&&state.settings.slotsOut)||10;
+  const maxIn=Math.max(slotsIn,...CMP_HOURS.map(h=>inB[h].length));
+  const maxOut=Math.max(slotsOut,...CMP_HOURS.map(h=>outB[h].length));
   $('#head').innerHTML='<th class="cmpsec"></th><th class="cmpslot">slot</th>'+CMP_HOURS.map(h=>'<th class="cmphr">'+h.slice(0,5)+'</th>').join('');
   const body=$('#body');body.innerHTML='';
   function section(name,band,B,maxR){
@@ -791,24 +1005,25 @@ function renderCompiled(isClient){
       let html='';
       if(s===1)html+='<td class="cmpsec" rowspan="'+maxR+'"><span>'+name+'</span></td>';
       html+='<td class="cmpslot">'+s+'</td>';
-      CMP_HOURS.forEach(h=>{const cell=B[h][s-1];html+=cell?'<td class="cmpcell has '+cell.statut+'">'+cell.label.replace(/</g,'&lt;')+'</td>':'<td class="cmpcell"></td>';});
+      CMP_HOURS.forEach(h=>{const cell=B[h][s-1];if(cell){const warn=(cell.flux==='out'&&isFoulee(cell.cr))?' <span class="warnicon" title="En foulée">⚠️</span>':'';const cmt=cell.cmt?' <span class="cmtdot" title="'+cell.cmt+' commentaire(s)">💬</span>':'';html+='<td class="cmpcell has '+cell.statut+'" data-flux="'+cell.flux+'" data-id="'+cell.id+'" title="Cliquer pour saisir / commenter">'+cell.label.replace(/</g,'&lt;')+warn+cmt+'</td>';}else html+='<td class="cmpcell"></td>';});
       tr.innerHTML=html;body.appendChild(tr);
     }
   }
   section('RÉCEPTION','recep',inB,maxIn);
   section('EXPÉDITION','exped',outB,maxOut);
+  body.querySelectorAll('.cmpcell.has').forEach(td=>td.addEventListener('click',()=>openUnit(td.dataset.flux,td.dataset.id)));
   const bIn=CMP_HOURS.reduce((s,h)=>s+inB[h].length,0),bOut=CMP_HOURS.reduce((s,h)=>s+outB[h].length,0);
   $('#stats').innerHTML=
     '<div class="stat total"><span class="dot" style="background:var(--termine-bd)"></span>Réception <b>'+bIn+'</b></div>'+
     '<div class="stat total"><span class="dot" style="background:var(--cours-bd)"></span>Expédition <b>'+bOut+'</b></div>'+
     '<div class="stat total"><span class="dot"></span>Total slots <b>'+(bIn+bOut)+'</b></div>';
-  $('#countLine').textContent='Vue compilée — '+(bIn+bOut)+' créneaux bookés ('+bIn+' réception · '+bOut+' expédition)';
+  $('#countLine').textContent='Vue compilée — '+(bIn+bOut)+' créneaux bookés ('+bIn+' réception · '+bOut+' expédition) · '+slotsIn+'/'+slotsOut+' slots';
   $('#emptyState').style.display='none';$('.tablewrap').style.display='block';
   $('#syncState').className='sync-state '+(fb.enabled?'on':'local');$('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
 }
 function exportCompiled(){
-  const inB=cmpBucket(buildUnits(dayData().inRows||[]),cmpLabelIn);
-  const outB=cmpBucket(buildUnits(dayData().rows||[]),cmpLabelOut);
+  const inB=cmpBucket(buildUnits(scopedInRows()),cmpLabelIn,"in");
+  const outB=cmpBucket(buildUnits(scopedRows()),cmpLabelOut,"out");
   const maxIn=Math.max(10,...CMP_HOURS.map(h=>inB[h].length));
   const maxOut=Math.max(10,...CMP_HOURS.map(h=>outB[h].length));
   const data=[['','slot'].concat(CMP_HOURS)];
@@ -818,12 +1033,146 @@ function exportCompiled(){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Compile IN-OUT');XLSX.writeFile(wb,'Compile_IN-OUT_'+state.currentDate+'.xlsx');
 }
 
+/* ===================== SCAN & ÉTIQUETTES (QR / code-barres) ===================== */
+/* Étiquette générée par l'admin (payload GXO:O|I:client:code), glissée au dossier.
+   Le cariste scanne : 1er scan = arrivée, 2e = début charg./décharg., 3e = départ (mode Auto). */
+const LIB_QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+const LIB_BAR='https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js';
+const LIB_CAM='https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+const _libs={};
+function loadScript(u){if(_libs[u])return _libs[u];_libs[u]=new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.onload=res;s.onerror=()=>rej(new Error('lib'));document.head.appendChild(s);});return _libs[u];}
+function scanPayload(flux,r){return'GXO:'+(flux==='in'?'I':'O')+':'+encodeURIComponent(r.cl||'')+':'+encodeURIComponent(flux==='in'?(r.container||''):(r.groupage||r.departure||''))+':'+state.currentDate;}
+function scanUrl(payload){const base=location.href.split('#')[0];const c=JSON.parse(localStorage.getItem(LS_FB)||'null');const cfg=(c&&c.databaseURL)?('cfg='+btoa(unescape(encodeURIComponent(JSON.stringify(c))))+'&'):'';return base+'#'+cfg+'scan='+encodeURIComponent(payload);}
+function parsePayload(t){t=(t||'').trim();
+  const um=t.match(/[#&]scan=([^&]+)/);if(um)t=decodeURIComponent(um[1]);   // QR = lien vers l'outil
+  const m=t.match(/^GXO:([IO]):([^:]*):([^:]+)(?::(\d{4}-\d{2}-\d{2}))?$/);if(!m)return null;
+  return{flux:m[1]==='I'?'in':'out',cl:decodeURIComponent(m[2]),code:decodeURIComponent(m[3]),date:m[4]||''};}
+function findByCode(flux,cl,code){const arr=flux==='in'?dayData().inRows:dayData().rows;const norm=s=>(s||'').trim().toUpperCase();code=norm(code);
+  return arr.find(r=>{if(cl&&(r.cl||'')!==cl)return false;return flux==='in'?norm(r.container)===code:(norm(r.groupage)===code||norm(r.departure)===code);})
+      ||arr.find(r=>flux==='in'?norm(r.container)===code:(norm(r.groupage)===code||norm(r.departure)===code));}
+function scanToast(ok,msg){let t=$('#scanToast');if(!t){t=document.createElement('div');t.id='scanToast';document.body.appendChild(t);}t.className=ok?'ok':'ko';t.innerHTML=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',3500);}
+function stampFromScan(payloadText){
+  if(session&&session.role==='client'){scanToast(false,'⛔ Compte client : consultation seule');return;}
+  let p=parsePayload(payloadText);
+  if(!p){const code=(payloadText||'').trim();if(!code)return;p={flux:state.flux==='in'?'in':'out',cl:'',code:code};let r0=findByCode(p.flux,'',code);if(!r0){p.flux=p.flux==='in'?'out':'in';r0=findByCode(p.flux,'',code);}if(!r0){scanToast(false,'❓ Code inconnu : '+code.replace(/</g,'&lt;'));return;}}
+  if(p.date&&p.date!==state.currentDate){state.currentDate=p.date;if(fb.enabled)subData();}
+  const r=findByCode(p.flux,p.cl,p.code);
+  if(!r){scanToast(false,'❓ Introuvable sur le '+fmtFR(state.currentDate)+' : '+p.code.replace(/</g,'&lt;'));return;}
+  const mode=($('#scanMode')&&$('#scanMode').value)||'auto';
+  let f=mode;
+  if(mode==='auto'){if(!r.arrivee)f='arrivee';else if(!r.charg)f='charg';else if(!r.depart)f='depart';else{scanToast(true,'✔ '+p.code+' — déjà complet ('+(r.depart)+')');return;}}
+  r[f]=nowHM();r.statut=autoStatus(r);
+  if(p.flux==='in')propagateIn(r);else propagate(r);
+  touch();save();render();
+  const lbl={arrivee:'Heure ARRIVÉE',charg:p.flux==='in'?'Début DÉCHARGEMENT':'Début CHARGEMENT',depart:'Heure DÉPART'}[f];
+  scanToast(true,'✅ <b>'+p.code.replace(/</g,'&lt;')+'</b><br>'+lbl+' = '+r[f]+(r.cl?' · '+r.cl:''));
+}
+/* Douchette (mode clavier) : écoute globale des rafales terminées par Entrée, préfixe GXO: requis */
+let _wbuf='',_wlast=0;
+document.addEventListener('keydown',e=>{
+  const now=Date.now();if(now-_wlast>120)_wbuf='';_wlast=now;
+  if(e.key==='Enter'){if(_wbuf.startsWith('GXO:')){e.preventDefault();e.stopPropagation();const ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA')&&ae.value&&ae.value.includes('GXO:'))ae.value=ae.value.replace(/GXO:[^\s]*/g,'').trim();stampFromScan(_wbuf);}_wbuf='';return;}
+  if(e.key.length===1)_wbuf+=e.key;
+},true);
+/* Caméra (html5-qrcode) */
+let _cam=null;
+async function startCam(){
+  $('#scanErr').textContent='';
+  try{await loadScript(LIB_CAM);}catch(e){$('#scanErr').textContent='Librairie caméra inaccessible (réseau).';return;}
+  try{
+    _cam=new Html5Qrcode('qrReader');
+    await _cam.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:180}},txt=>{stampFromScan(txt);},()=>{});
+    $('#camStart').style.display='none';$('#camStop').style.display='';
+  }catch(e){$('#scanErr').textContent='Caméra indisponible : '+(e.message||e)+' (autorise la caméra, HTTPS requis).';}
+}
+async function stopCam(){try{if(_cam){await _cam.stop();_cam.clear();_cam=null;}}catch(e){}$('#camStart').style.display='';$('#camStop').style.display='none';}
+$('#scanBtn').onclick=()=>{$('#scanErr').textContent='';$('#scanModal').classList.add('open');setTimeout(()=>$('#scanInput').focus(),150);};
+$('#camStart').onclick=startCam;$('#camStop').onclick=stopCam;
+$('#scanGo').onclick=()=>{stampFromScan($('#scanInput').value);$('#scanInput').value='';$('#scanInput').focus();};
+$('#scanInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#scanGo').click();}});
+/* Étiquettes imprimables (QR + Code128) */
+function labelUnits(){
+  const flux=state.flux==='in'?'in':'out';
+  const units=buildUnits(flux==='in'?scopedInRows():scopedRows());
+  return units.map(u=>({flux,r:u.rep,n:u.rows.length})).filter(x=>flux==='in'?x.r.container:(x.r.groupage||x.r.departure));
+}
+function labelHtml(x){
+  const r=x.r,p=scanPayload(x.flux,r),url=scanUrl(p),id='c'+Math.random().toString(36).slice(2,8);
+  const title=x.flux==='in'?(r.container):(r.groupage||r.departure);
+  const l2=x.flux==='in'?((r.message||'')+(r.sd?' · SD '+r.sd:'')):((r.transporteur||'')+(r.groupage?' · '+x.n+' cmd':''));
+  const l3=(r.cl?r.cl+' · ':'')+'RDV '+(r.rdv||'—')+' · '+fmtFR(state.currentDate)+(x.flux==='in'?' · RÉCEPTION':' · EXPÉDITION');
+  const l4=x.flux==='out'&&r.destinataire&&!r.groupage?r.destinataire:'';
+  return'<div class="lab"><div class="lt">'+title+'</div><div class="l2">'+l2+'</div>'+(l4?'<div class="l2">'+l4+'</div>':'')+'<div class="l3">'+l3+'</div><div class="codes"><div id="q'+id+'" class="qr"></div><svg id="b'+id+'"></svg></div><div class="l3" style="font-weight:400;color:#666;font-size:9.5px;margin-top:2mm">📱 QR : appareil photo du téléphone → pointage direct, sans compte · ⌨ Code-barres : douchette</div><script>new QRCode(document.getElementById("q'+id+'"),{text:'+JSON.stringify(url)+',width:118,height:118,correctLevel:QRCode.CorrectLevel.L});JsBarcode("#b'+id+'",'+JSON.stringify(p)+',{format:"CODE128",height:52,fontSize:9,margin:4});<\/script></div>';
+}
+function printLabels(subset){
+  const items=subset||labelUnits();
+  if(!items.length){alert('Aucun RDV à étiqueter sur cette vue (vérifie l\'onglet IN/OUT, la date et le filtre client).');return;}
+  const flux=items[0].flux;
+  const w=window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Étiquettes '+(flux==='in'?'Réception':'Expédition')+' '+state.currentDate+'</title>'+
+   '<style>body{font-family:Arial,sans-serif;margin:8mm}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.grid.solo{grid-template-columns:1fr;max-width:120mm;margin:0 auto}.lab{border:1.6px solid #000;border-radius:8px;padding:6mm;page-break-inside:avoid;text-align:center}.lt{font-size:22px;font-weight:900;letter-spacing:.5px}.l2{font-size:13px;margin-top:2px}.l3{font-size:11.5px;color:#333;margin-top:2px;font-weight:700}.codes{display:flex;align-items:center;justify-content:center;gap:8mm;margin-top:4mm}.qr{width:110px;height:110px}svg{max-width:70mm}@media print{.noprint{display:none}}</style>'+
+   '<script src="'+LIB_QR+'"><\/script><script src="'+LIB_BAR+'"><\/script></head><body>'+
+   '<div class="noprint" style="margin-bottom:6mm"><button onclick="window.print()" style="padding:8px 18px;font-size:15px">🖨 Imprimer</button> <span style="font-size:12px;color:#555">'+items.length+' étiquette(s) — une par camion/conteneur, à glisser dans le dossier.</span></div>'+
+   '<div class="grid'+(items.length===1?' solo':'')+'">'+items.map(labelHtml).join('')+'</div></body></html>');
+  w.document.close();
+}
+$('#labelsBtn').onclick=()=>printLabels();
+
+/* ===================== MODE SCAN SEUL (sans compte) ===================== */
+/* L'étiquette physique vaut autorisation de pointage. Aucune donnée du planning n'est affichée. */
+function soResult(ok,title,html,retry){
+  $('#soTitle').textContent=title;
+  $('#soBody').innerHTML=html;
+  $('#soBody').style.color=ok?'var(--termine-ink)':'var(--attente-ink)';
+  $('#soAgain').style.display='';
+}
+function startScanOnly(){
+  const ps=window.__pendingScan;window.__pendingScan=null;
+  $('#scanOnlyModal').classList.add('open');
+  const p=parsePayload(ps);
+  if(!p){soResult(false,'Code non reconnu','Ce QR ne correspond pas à une étiquette de pointage.');return;}
+  if(p.date&&p.date!==state.currentDate){state.currentDate=p.date;if(fb.enabled)subData();}
+  let tries=0;
+  const attempt=()=>{
+    const r=findByCode(p.flux,p.cl,p.code);
+    if(!r){
+      if(tries++<8){$('#soBody').textContent='Recherche du RDV… ('+tries+')';setTimeout(attempt,800);return;}
+      soResult(false,'RDV introuvable','<b>'+p.code.replace(/</g,'&lt;')+'</b><br>Introuvable sur le planning du '+fmtFR(state.currentDate)+'.<br>Vérifie l\'étiquette ou vois avec l\'exploitation.');return;
+    }
+    let f='auto';
+    if(!r.arrivee)f='arrivee';else if(!r.charg)f='charg';else if(!r.depart)f='depart';
+    else{soResult(true,'Déjà complet','<b>'+p.code.replace(/</g,'&lt;')+'</b><br>Toutes les heures sont déjà pointées (départ '+r.depart+').');return;}
+    r[f]=nowHM();r.statut=autoStatus(r);
+    if(p.flux==='in')propagateIn(r);else propagate(r);
+    touch();save();
+    const lbl={arrivee:'Heure ARRIVÉE',charg:p.flux==='in'?'Début DÉCHARGEMENT':'Début CHARGEMENT',depart:'Heure DÉPART'}[f];
+    soResult(true,'✅ Pointage enregistré','<b style="font-size:20px">'+p.code.replace(/</g,'&lt;')+'</b><br>'+lbl+' = <b style="font-size:20px">'+r[f]+'</b>'+(r.cl?'<br>'+r.cl:'')+'<br><span style="color:var(--muted);font-size:12.5px">'+fmtFR(state.currentDate)+' · prochain scan = étape suivante</span>');
+  };
+  $('#soBody').textContent='Recherche du RDV…';
+  setTimeout(attempt,fb.enabled?900:100);
+}
+$('#soLogin').onclick=()=>{$('#scanOnlyModal').classList.remove('open');applySession();};
+$('#soAgain').onclick=async()=>{
+  $('#soAgain').style.display='none';$('#soTitle').textContent='Scanner un code';$('#soBody').innerHTML='<div id="soReader" style="max-width:340px;margin:0 auto"></div>';
+  try{await loadScript(LIB_CAM);const cam=new Html5Qrcode('soReader');
+    await cam.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:170}},txt=>{cam.stop().then(()=>cam.clear()).catch(()=>{});window.__pendingScan=txt;startScanOnly();},()=>{});
+  }catch(e){$('#soBody').textContent='Caméra indisponible : '+(e.message||e);$('#soAgain').style.display='';}
+};
+$('#uLabel').onclick=()=>{
+  const r=findRow(curUnit.flux,curUnit.id);if(!r)return;
+  if(curUnit.flux==='in'&&!r.container){alert('Pas de code stable à étiqueter (conteneur « en attente »).');return;}
+  const n=curUnit.flux==='out'&&r.groupage?dayData().rows.filter(x=>x.groupage===r.groupage&&(x.cl||'')===(r.cl||'')).length:1;
+  printLabels([{flux:curUnit.flux,r:r,n:n}]);
+};
+
 (function boot(){
   document.body.style.visibility='hidden';
   let hashCfg=null;try{const m=(location.hash||'').match(/cfg=([^&]+)/);if(m)hashCfg=JSON.parse(decodeURIComponent(escape(atob(m[1]))));}catch(e){}
+  try{const sm=(location.hash||'').match(/scan=([^&]+)/);if(sm){window.__pendingScan=decodeURIComponent(sm[1]);history.replaceState(null,'',location.href.replace(/&?scan=[^&]+/,'').replace(/#$/,''));}}catch(e){}
   const baked=window.__FB_CONFIG__||hashCfg||JSON.parse(localStorage.getItem(LS_FB)||'null');
-  if(baked&&baked.databaseURL&&baked.apiKey){localStorage.setItem(LS_FB,JSON.stringify(baked));initFb(baked).then(()=>setTimeout(applySession,400));}
-  applySession();
+  const hasFb=baked&&baked.databaseURL&&baked.apiKey;
+  if(hasFb){localStorage.setItem(LS_FB,JSON.stringify(baked));initFb(baked);setTimeout(()=>{if(!appReady)applySession();},2200);}
+  else applySession();
 })();
 </script>
 </body>
