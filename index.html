@@ -187,6 +187,7 @@
   .urole.exploitation{background:var(--accent-soft);color:var(--accent)}
   .urole.client{background:var(--termine-bg);color:var(--termine-ink)}
   .urole.admin{background:var(--attente-bg);color:var(--attente-ink)}
+  .rolesel{font-size:11.5px;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:3px 6px;background:var(--panel2);color:var(--ink)}
 
   .authbox{max-width:420px;text-align:center}
   .authbox .logo{width:54px;height:54px;font-size:18px;border-radius:14px;margin:0 auto 14px}
@@ -234,7 +235,7 @@
     <button class="btn" id="importBtn">⬆ Importer</button>
     <button class="btn" id="crBtn">🏷️ CR client</button>
     <button class="btn" id="exportBtn">⬇ Export</button>
-    <button class="btn" id="slotBtn" title="Réglage administrateur des slots">⚙️ Slots</button>
+    <button class="btn" id="slotBtn" title="Paramètres administrateur (quais, slots)">⚙️ Paramètres</button>
     <button class="btn" id="printBtn">🖨</button>
     <button class="btn" id="scanBtn">📷 Scanner</button>
     <button class="btn" id="labelsBtn">🏷️ Étiquettes</button>
@@ -346,8 +347,12 @@
 </div></div>
 
 <div class="overlay" id="slotModal"><div class="modal">
-  <h3>⚙️ Slots — réglage administrateur</h3>
-  <p>Nombre de slots (positions) affichés par créneau sur la vue compilée. La grille s'étend automatiquement si un créneau dépasse ce nombre, pour ne rien masquer.</p>
+  <h3>⚙️ Paramètres — administrateur</h3>
+  <div class="dashsection">Quais du site</div>
+  <p>Liste des numéros de quai, séparés par des virgules (ex : 1, 2, 3, 12, 14B). Ils s'affichent en suggestion à la saisie, et une <b>alerte non bloquante</b> prévient si un quai saisi est déjà occupé par un RDV sans heure de départ.</p>
+  <input id="quaisInput" placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10" style="width:100%;margin-bottom:12px">
+  <div class="dashsection">Slots de la vue compilée</div>
+  <p>Nombre de positions affichées par créneau. La grille s'étend automatiquement si un créneau dépasse ce nombre.</p>
   <div class="row2" style="margin-bottom:10px">
     <div class="field"><label>Slots Réception (IN)</label><input type="number" id="slotsInInput" min="1" max="30" style="width:90px"></div>
     <div class="field"><label>Slots Expédition (OUT)</label><input type="number" id="slotsOutInput" min="1" max="30" style="width:90px"></div>
@@ -360,7 +365,7 @@
   <p id="unitSub" style="color:var(--muted);margin-top:-4px"></p>
   <div class="row2" id="unitFields" style="margin-bottom:8px">
     <div class="field"><label>RDV <span id="uRdvOrig" style="font-weight:400;color:var(--muted)"></span></label><input id="uRdv" placeholder="--:--" style="width:80px"></div>
-    <div class="field"><label>Quai</label><input id="uQuai" placeholder="—" style="width:80px"></div>
+    <div class="field"><label>Quai</label><input id="uQuai" list="quaiDL" placeholder="—" style="width:80px"></div>
     <div class="field"><label>Heure arrivée</label><div class="stamp"><input id="uArr" placeholder="--:--" style="width:78px"><button data-ust="uArr" title="Tamponner l'heure actuelle">⏱</button></div></div>
     <div class="field"><label id="uChargLbl">Heure charg.</label><div class="stamp"><input id="uCharg" placeholder="--:--" style="width:78px"><button data-ust="uCharg" title="Tamponner l'heure actuelle">⏱</button></div></div>
     <div class="field"><label>Heure départ</label><div class="stamp"><input id="uDep" placeholder="--:--" style="width:78px"><button data-ust="uDep" title="Tamponner l'heure actuelle">⏱</button></div></div>
@@ -467,9 +472,15 @@ function uid(){return Math.random().toString(36).slice(2,9);}
 function $(s){return document.querySelector(s);}
 function dayData(){const d=state.days[state.currentDate]=state.days[state.currentDate]||{rows:[],updated:null};if(!d.inRows)d.inRows=[];if(!d.inCols)d.inCols=null;if(!d.comments)d.comments={};return d;}
 function isFoulee(t){return /foul[ée]e/i.test(t||'');}
-function cmtKey(flux,r){const c=(r.cl||'')+':';if(flux==='in')return 'I'+c+(r.container?('C:'+r.container):('R:'+(r.rdv||'')+'|'+(r.sd||r.id)));return 'O'+c+(r.groupage?('G:'+r.groupage):('D:'+(r.departure||r.id)+'|'+(r.rdv||'')));}
-function getComments(flux,r){return dayData().comments[cmtKey(flux,r)]||[];}
-function addCommentTo(flux,r,text){const k=cmtKey(flux,r);const arr=dayData().comments[k]=dayData().comments[k]||[];arr.push({t:new Date().toISOString(),by:(session&&session.label)||(session&&(session.role==='client'?'Client':'Exploitation'))||'—',text:text});touch();save();}
+function cmtKey(flux,r){const c=(r.cl||'')+':';if(flux==='in')return 'I'+c+(r.container?('C:'+r.container):('R:'+(r.sd||r.id)));return 'O'+c+(r.groupage?('G:'+r.groupage):('D:'+(r.departure||r.id)));}
+/* Anciennes clés (contenaient l'heure de RDV → cassaient l'historique quand on modifiait l'heure) */
+function cmtLegacyKeys(flux,r){const c=(r.cl||'')+':';const ks=[];const hs=[...new Set([r.rdv||'',r.rdv0||''])];
+  if(flux==='in'){if(!r.container)hs.forEach(h=>ks.push('I'+c+'R:'+h+'|'+(r.sd||r.id)));}
+  else if(!r.groupage)hs.forEach(h=>ks.push('O'+c+'D:'+(r.departure||r.id)+'|'+h));
+  return ks;}
+function migrateCmts(flux,r){const cm=dayData().comments,nk=cmtKey(flux,r);cmtLegacyKeys(flux,r).forEach(k=>{if(cm[k]&&cm[k].length){cm[nk]=(cm[nk]||[]).concat(cm[k]);delete cm[k];}});if(cm[nk])cm[nk].sort((a,b)=>(a.t||'').localeCompare(b.t||''));}
+function getComments(flux,r){migrateCmts(flux,r);return dayData().comments[cmtKey(flux,r)]||[];}
+function addCommentTo(flux,r,text){migrateCmts(flux,r);const k=cmtKey(flux,r);const arr=dayData().comments[k]=dayData().comments[k]||[];arr.push({t:new Date().toISOString(),by:(session&&session.label)||(session&&(session.role==='client'?'Client':'Exploitation'))||'—',text:text});touch();save();}
 function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return(h>>>0).toString(16);}
 function toMin(hm){if(!hm||!/^\d{1,2}:\d{2}$/.test(hm))return null;const p=hm.split(':');return(+p[0])*60+(+p[1]);}
 function railColor(code){let s=0;for(const c of code)s+=c.charCodeAt(0);return GRAIL[s%GRAIL.length];}
@@ -508,7 +519,7 @@ function kpiFor(units,tol){let total=units.length,pres=0,done=0,aOn=0,aN=0,cOn=0
 
 const COLS=['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','QUAI','H. ARRIVÉE','H. CHARG.','H. DÉPART','STATUT'];
 function visibleRows(){const q=($('#searchInput').value||'').toLowerCase(),tf=$('#transpFilter').value;
-  return scopedRows().filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tf&&r.transporteur!==tf)return false;if(q){const b=(r.departure+' '+r.transporteur+' '+r.destinataire+' '+r.groupage+' '+r.cr+' '+(r.cl||'')).toLowerCase();if(!b.includes(q))return false;}return true;})
+  return scopedRows().filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tf&&r.transporteur!==tf)return false;if(q){const b=(r.departure+' '+(r.rdv||'')+' '+r.transporteur+' '+r.destinataire+' '+r.groupage+' '+r.cr+' '+(r.cl||'')).toLowerCase();if(!b.includes(q))return false;}return true;})
   .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.groupage||'zzzz').localeCompare(b.groupage||'zzzz')||a.departure.localeCompare(b.departure));}
 
 function render(){
@@ -532,7 +543,7 @@ function render(){
   $('#crBtn').style.display=(!isClient&&state.flux==='out')?'':'none';
   $('#usersBtn').style.display=isAdmin?'':'none';
   $('#syncBtn').style.display=isAdmin?'':'none';
-  $('#slotBtn').style.display=(isAdmin&&isCmp)?'':'none';
+  $('#slotBtn').style.display=isAdmin?'':'none';
   $('#exportBtn').style.display='';$('#printBtn').style.display='';
   $('#scanBtn').style.display=isClient?'none':'';
   $('#labelsBtn').style.display=(!isClient&&!isCmp)?'':'none';
@@ -591,7 +602,7 @@ function render(){
       let ops;
       if(opEditable){
         ops=
-        '<td class="quaicell"><input value="'+(r.quai||'')+'" data-f="quai" placeholder="—"></td>'+
+        '<td class="quaicell"><input list="quaiDL" value="'+(r.quai||'')+'" data-f="quai" placeholder="—"></td>'+
         '<td class="timecell"><div class="stamp"><input value="'+(r.arrivee||'')+'" data-f="arrivee" placeholder="--:--"><button data-st="arrivee" title="Tamponner">⏱</button></div></td>'+
         '<td class="timecell"><div class="stamp"><input value="'+(r.charg||'')+'" data-f="charg" placeholder="--:--"><button data-st="charg" title="Tamponner">⏱</button></div></td>'+
         '<td class="timecell"><div class="stamp"><input value="'+(r.depart||'')+'" data-f="depart" placeholder="--:--"><button data-st="depart" title="Tamponner">⏱</button></div></td>'+
@@ -614,7 +625,7 @@ function render(){
           const f=inp.dataset.f;let v=inp.value;
           if(f==='arrivee'||f==='charg'||f==='depart')v=cleanTime(v);
           r[f]=v;if(f!=='statut')r.statut=autoStatus(r);
-          propagate(r);touch();render();}));
+          propagate(r);touch();render();if(f==='quai')quaiWarn('out',r,v);}));
         tr.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>setStamp(r,b.dataset.st)));
       }
     }
@@ -698,7 +709,7 @@ function pushFb(){if(!fb.enabled||fb.suppress)return;if(session&&session.role===
 function subData(){if(fb.ref)fb.ref.off();if(!fb.enabled)return;fb.ref=fb.db.ref(fbDataPath());fb.ref.on('value',s=>{const v=s.val();if(!v)return;fb.suppress=true;state.days[state.currentDate]=v;localStorage.setItem(LS,JSON.stringify(state));render();fb.suppress=false;});}
 function subUsers(){if(fb.uref)fb.uref.off();if(!fb.enabled)return;fb.uref=fb.db.ref('meta/users');fb.uref.on('value',s=>{const v=s.val();if(v){state.users=v;localStorage.setItem(LS,JSON.stringify(state));}applySession();});}
 function subCrMap(){if(fb.cref)fb.cref.off();if(!fb.enabled)return;fb.cref=fb.db.ref('meta/crmap');fb.cref.on('value',s=>{const v=s.val();if(v){state.crMap=v;localStorage.setItem(LS,JSON.stringify(state));applyCrMap();render();}});}
-function subSettings(){if(fb.sref)fb.sref.off();if(!fb.enabled)return;fb.sref=fb.db.ref('meta/settings');fb.sref.on('value',s=>{const v=s.val();if(v){state.settings=v;localStorage.setItem(LS,JSON.stringify(state));if(state.flux==='cmp')render();}});fb.clref=fb.db.ref('meta/clients');fb.clref.on('value',s=>{const v=s.val();if(v){state.clients=v;localStorage.setItem(LS,JSON.stringify(state));}});}
+function subSettings(){if(fb.sref)fb.sref.off();if(!fb.enabled)return;fb.sref=fb.db.ref('meta/settings');fb.sref.on('value',s=>{const v=s.val();if(v){state.settings=v;localStorage.setItem(LS,JSON.stringify(state));fillQuaiDL();if(state.flux==='cmp')render();}});fb.clref=fb.db.ref('meta/clients');fb.clref.on('value',s=>{const v=s.val();if(v){state.clients=v;localStorage.setItem(LS,JSON.stringify(state));}});}
 function buildClientFile(){
   const cfg=JSON.parse(localStorage.getItem(LS_FB)||'null');
   if(!cfg){alert('Active d\'abord la sync.');return;}
@@ -714,6 +725,15 @@ function ensureAdmin(){if(state.users.length&&!state.users.some(u=>u.role==='adm
 function applySession(){
   appReady=true;ensureAdmin();
   const needSetup=state.users.length===0;
+  if(window.__recovery&&!session&&!needSetup){
+    window.__recovery=false;
+    const code=prompt('Récupération administrateur\n\nSaisis le code d\'un compte Exploitation ou Administrateur existant.\nCe compte sera promu Administrateur.');
+    if(code){const u=state.users.find(x=>x.h===hash(code.trim()));
+      if(!u)alert('Code inconnu.');
+      else if(u.role==='client')alert('Refusé : un compte Client ne peut pas être promu.');
+      else{u.role='admin';save();session={role:'admin',label:u.label,client:''};localStorage.setItem(LS_SESS,JSON.stringify(session));alert('✅ '+(u.label||'Compte')+' est maintenant Administrateur.');}
+    }
+  }
   if(window.__pendingScan&&!session&&!needSetup){document.body.style.visibility='visible';startScanOnly();return;}
   $('#setupModal').classList.toggle('open',needSetup);
   $('#loginModal').classList.toggle('open',!needSetup&&!session);
@@ -725,7 +745,13 @@ function applySession(){
 function logout(){session=null;localStorage.removeItem(LS_SESS);state.mode='exploitation';applySession();}
 
 function renderUsers(){
-  $('#userList').innerHTML=state.users.map((u,i)=>'<div class="u"><b>'+(u.label||'—')+'</b>'+(u.client?'<span class="urole" style="background:var(--panel2)">'+u.client+'</span>':'')+'<span class="urole '+u.role+'">'+u.role+'</span><span class="spacer" style="flex:1"></span><button class="btn danger" data-del="'+i+'">Supprimer</button></div>').join('')||'<div class="u" style="color:var(--muted)">Aucun compte</div>';
+  const roleSel=(u,i)=>'<select class="rolesel" data-role="'+i+'"><option value="client" '+(u.role==='client'?'selected':'')+'>Client</option><option value="exploitation" '+(u.role==='exploitation'?'selected':'')+'>Exploitation</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>Administrateur</option></select>';
+  $('#userList').innerHTML=state.users.map((u,i)=>'<div class="u"><b>'+(u.label||'—')+'</b>'+(u.client?'<span class="urole" style="background:var(--panel2)">'+u.client+'</span>':'')+roleSel(u,i)+'<span class="spacer" style="flex:1"></span><button class="btn danger" data-del="'+i+'">Supprimer</button></div>').join('')||'<div class="u" style="color:var(--muted)">Aucun compte</div>';
+  $('#userList').querySelectorAll('.rolesel').forEach(sel=>sel.addEventListener('change',()=>{
+    const i=+sel.dataset.role,u=state.users[i],nr=sel.value;
+    if(u.role==='admin'&&nr!=='admin'&&state.users.filter(x=>x.role==='admin').length<=1){$('#usersErr').textContent='Impossible : il faut au moins un compte administrateur.';sel.value='admin';return;}
+    if(nr==='client'&&!u.client){const c=prompt('Ce compte devient Client : à quel client le rattacher ?',u.client||'');if(!c){$('#usersErr').textContent='Changement annulé : un compte Client doit être rattaché à un client.';sel.value=u.role;return;}u.client=c.trim();if(state.clients&&!state.clients.includes(u.client))state.clients.push(u.client);}
+    u.role=nr;save();$('#usersErr').textContent='✅ '+(u.label||'Compte')+' → '+nr;renderUsers();}));
   $('#userList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.del,u=state.users[i];
     if(u.role==='admin'&&state.users.filter(x=>x.role==='admin').length<=1){$('#usersErr').textContent='Impossible : il faut au moins un compte administrateur.';return;}
@@ -839,14 +865,28 @@ $('#uSave').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return;
     const gk=curUnit.flux==='in'?r.container:r.groupage;
     if(gk)arr.forEach(x=>{if(x!==r&&(x.cl||'')===(r.cl||'')&&(curUnit.flux==='in'?x.container:x.groupage)===gk){if(!x.rdv0)x.rdv0=x.rdv;x.rdv=newRdv;}});
   }
-  r.quai=$('#uQuai').value.trim();r.arrivee=cleanTime($('#uArr').value.trim());r.charg=cleanTime($('#uCharg').value.trim());r.depart=cleanTime($('#uDep').value.trim());r.statut=autoStatus(r);if(curUnit.flux==='in')propagateIn(r);else propagate(r);touch();save();render();$('#unitModal').classList.remove('open');};
+  r.quai=$('#uQuai').value.trim();r.arrivee=cleanTime($('#uArr').value.trim());r.charg=cleanTime($('#uCharg').value.trim());r.depart=cleanTime($('#uDep').value.trim());r.statut=autoStatus(r);if(curUnit.flux==='in')propagateIn(r);else propagate(r);touch();save();render();if(r.quai)quaiWarn(curUnit.flux,r,r.quai);$('#unitModal').classList.remove('open');};
 document.querySelectorAll('#unitFields [data-ust]').forEach(b=>b.addEventListener('click',()=>{const inp=$('#'+b.dataset.ust);inp.value=inp.value?'':nowHM();}));
 $('#uCmtAdd').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return;const t=$('#uCmtInput').value.trim();if(!t)return;addCommentTo(curUnit.flux,r,t);$('#uCmtInput').value='';renderUnitComments(curUnit.flux,r);render();};
 $('#uCmtInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#uCmtAdd').click();}});
 
 // ---- Slots (admin) ----
-$('#slotBtn').onclick=()=>{$('#slotsInInput').value=(state.settings&&state.settings.slotsIn)||10;$('#slotsOutInput').value=(state.settings&&state.settings.slotsOut)||10;$('#slotModal').classList.add('open');};
-$('#slotSave').onclick=()=>{const si=Math.max(1,Math.min(30,parseInt($('#slotsInInput').value)||10)),so=Math.max(1,Math.min(30,parseInt($('#slotsOutInput').value)||10));state.settings={slotsIn:si,slotsOut:so};save();$('#slotModal').classList.remove('open');render();};
+$('#slotBtn').onclick=()=>{$('#quaisInput').value=((state.settings&&state.settings.quais)||[]).join(', ');$('#slotsInInput').value=(state.settings&&state.settings.slotsIn)||10;$('#slotsOutInput').value=(state.settings&&state.settings.slotsOut)||10;$('#slotModal').classList.add('open');};
+$('#slotSave').onclick=()=>{const si=Math.max(1,Math.min(30,parseInt($('#slotsInInput').value)||10)),so=Math.max(1,Math.min(30,parseInt($('#slotsOutInput').value)||10));const quais=[...new Set($('#quaisInput').value.split(/[,;\n]+/).map(s=>s.trim()).filter(Boolean))];state.settings={slotsIn:si,slotsOut:so,quais:quais};save();fillQuaiDL();$('#slotModal').classList.remove('open');render();};
+/* Datalist des quais (suggestions de saisie) */
+function fillQuaiDL(){let dl=$('#quaiDL');if(!dl){dl=document.createElement('datalist');dl.id='quaiDL';document.body.appendChild(dl);}dl.innerHTML=((state.settings&&state.settings.quais)||[]).map(q=>'<option value="'+String(q).replace(/"/g,'&quot;')+'">').join('');}
+/* Alerte quai occupé (non bloquante) : même quai sur un autre RDV sans heure de départ */
+function quaiConflict(flux,row,quai){
+  quai=(quai||'').trim();if(!quai)return null;
+  const sameUnit=x=>{if(x.id===row.id)return true;const g=flux==='in'?row.container:row.groupage;if(!g)return false;return (x.cl||'')===(row.cl||'')&&((flux==='in'?x.container:x.groupage)===g);};
+  const scan=(arr,fx)=>{for(const x of arr){if((x.quai||'').trim()!==quai)continue;if(x.depart)continue;if(fx===flux&&sameUnit(x))continue;return{x,fx};}return null;};
+  return scan(dayData().rows||[],'out')||scan(dayData().inRows||[],'in');
+}
+function quaiWarn(flux,row,quai){
+  const c=quaiConflict(flux,row,quai);if(!c)return;
+  const who=c.fx==='in'?(c.x.container||'réception'):(c.x.groupage||c.x.departure);
+  scanToast(false,'⚠️ <b>Quai '+quai.replace(/</g,'&lt;')+'</b> déjà occupé par <b>'+String(who).replace(/</g,'&lt;')+'</b>'+(c.x.cl?' ('+c.x.cl+')':'')+'<br>RDV '+(c.x.rdv||'—')+' — heure de départ non renseignée');
+}
 $('#linkCopy').onclick=()=>{const c=JSON.parse(localStorage.getItem(LS_FB)||'null');if(!c||!c.databaseURL){alert('Active d\'abord la sync Firebase.');return;}const base=location.href.split('#')[0];const url=base+'#cfg='+btoa(unescape(encodeURIComponent(JSON.stringify(c))));const done=()=>alert('Lien copié.\n\nToute personne qui ouvre ce lien (fichier hébergé) voit le live et se connecte avec son code. Pense à héberger ce fichier sur GitHub Pages ou ton intranet.');if(navigator.clipboard)navigator.clipboard.writeText(url).then(done,()=>prompt('Copie ce lien :',url));else prompt('Copie ce lien :',url);};
 $('#syncBtn').onclick=()=>{const c=JSON.parse(localStorage.getItem(LS_FB)||'{}');$('#fbUrl').value=c.databaseURL||'';$('#fbKey').value=c.apiKey||'';$('#fbProj').value=c.projectId||'';$('#fbApp').value=c.appId||'';$('#syncModal').classList.add('open');};
 $('#fbSave').onclick=async()=>{const cfg={databaseURL:$('#fbUrl').value.trim(),apiKey:$('#fbKey').value.trim(),projectId:$('#fbProj').value.trim(),appId:$('#fbApp').value.trim()};if(!cfg.databaseURL||!cfg.apiKey){alert('databaseURL et apiKey requis.');return;}if(await initFb(cfg)){localStorage.setItem(LS_FB,JSON.stringify(cfg));pushFb();render();$('#syncModal').classList.remove('open');alert('Sync activée. Génère maintenant le « Fichier client à héberger ».');}};
@@ -913,7 +953,7 @@ function renderIn(isClient){
           '<td><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'\u2014')+'</span></td>'+
           '<td><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'\u2014')+'</span></td>';
     }else if(opEditable){
-      ops='<td class="quaicell"><input value="'+(r.quai||'')+'" data-f="quai" placeholder="\u2014"></td>'+
+      ops='<td class="quaicell"><input list="quaiDL" value="'+(r.quai||'')+'" data-f="quai" placeholder="\u2014"></td>'+
           '<td class="timecell"><div class="stamp"><input value="'+(r.arrivee||'')+'" data-f="arrivee" placeholder="--:--"><button data-st="arrivee" title="Tamponner">\u23f1</button></div></td>'+
           '<td class="timecell"><div class="stamp"><input value="'+(r.charg||'')+'" data-f="charg" placeholder="--:--"><button data-st="charg" title="Tamponner">\u23f1</button></div></td>'+
           '<td class="timecell"><div class="stamp"><input value="'+(r.depart||'')+'" data-f="depart" placeholder="--:--"><button data-st="depart" title="Tamponner">\u23f1</button></div></td>';
@@ -925,7 +965,7 @@ function renderIn(isClient){
     }
     tr.innerHTML=dataCells+ops;
     if(opEditable){
-      tr.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('change',()=>{const f=inp.dataset.f;let v=inp.value;if(f!=='quai')v=cleanTime(v);r[f]=v;r.statut=autoStatus(r);propagateIn(r);touch();render();}));
+      tr.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('change',()=>{const f=inp.dataset.f;let v=inp.value;if(f!=='quai')v=cleanTime(v);r[f]=v;r.statut=autoStatus(r);propagateIn(r);touch();render();if(f==='quai')quaiWarn('in',r,v);}));
       tr.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.st;r[f]=r[f]?'':nowHM();r.statut=autoStatus(r);propagateIn(r);touch();render();}));
     }
     const cb=tr.querySelector('.cbtn');if(cb)cb.addEventListener('click',()=>openUnit('in',r.id));
@@ -1167,6 +1207,8 @@ $('#uLabel').onclick=()=>{
 
 (function boot(){
   document.body.style.visibility='hidden';
+  fillQuaiDL();
+  if(/recovery/.test(location.hash||''))window.__recovery=true;
   let hashCfg=null;try{const m=(location.hash||'').match(/cfg=([^&]+)/);if(m)hashCfg=JSON.parse(decodeURIComponent(escape(atob(m[1]))));}catch(e){}
   try{const sm=(location.hash||'').match(/scan=([^&]+)/);if(sm){window.__pendingScan=decodeURIComponent(sm[1]);history.replaceState(null,'',location.href.replace(/&?scan=[^&]+/,'').replace(/#$/,''));}}catch(e){}
   const baked=window.__FB_CONFIG__||hashCfg||JSON.parse(localStorage.getItem(LS_FB)||'null');
