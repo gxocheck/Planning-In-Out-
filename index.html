@@ -100,6 +100,14 @@
   .stamp button{border:1px solid var(--line);background:var(--panel);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:13px;display:grid;place-items:center;font-weight:800;color:var(--accent)}
   .stamp button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
   .statesel{border-radius:8px;font-weight:700;padding:6px 8px}
+  tr.retard{background:#fdecea}
+  tr.retard td.statecell{border-left-color:#c0392b}
+  tr.retann{background:#f3eafc}
+  tr.retann td.statecell{border-left-color:#8e44ad}
+  .pill.retard{background:#fdecea;color:#7b241c;border:1px solid #c0392b}
+  .pill.retann{background:#f3eafc;color:#5e2f77;border:1px solid #8e44ad}
+  .statesel.retann{background:#f3eafc;border-color:#8e44ad}
+  .statesel.retard{background:#fdecea;border-color:#c0392b}
 
   .ro{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
   td.mirror{opacity:.72;font-style:italic}
@@ -425,12 +433,19 @@
     <div class="field"><label id="uChargLbl">Heure charg.</label><div class="stamp"><input id="uCharg" placeholder="--:--" style="width:78px"><button data-ust="uCharg" title="Tamponner l'heure actuelle">⏱</button></div></div>
     <div class="field"><label>Heure départ</label><div class="stamp"><input id="uDep" placeholder="--:--" style="width:78px"><button data-ust="uDep" title="Tamponner l'heure actuelle">⏱</button></div></div>
   </div>
-  <div class="modal-actions" id="unitOpActions" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" id="uLabel" style="margin-right:auto">🏷️ Imprimer l'étiquette</button><button class="btn primary" id="uSave">Enregistrer les heures</button></div>
+  <div class="modal-actions" id="unitOpActions" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" id="uLabel" style="margin-right:auto">🏷️ Imprimer l'étiquette</button><button class="btn" id="uLate" style="display:none;border-color:#8e44ad">📞 Retard annoncé</button><button class="btn primary" id="uSave">Enregistrer les heures</button></div>
   <div class="dashsection">Commentaires (historique par RDV)</div>
   <div class="userlist" id="uCmtList" style="max-height:34vh;overflow:auto"></div>
   <div class="row2" id="uCmtAddRow" style="margin-top:8px">
     <input id="uCmtInput" placeholder="Ajouter un commentaire…" style="flex:1">
     <button class="btn primary" id="uCmtAdd">Ajouter</button>
+  </div>
+  <div class="dashsection">📎 Documents (CMR, bon de livraison, photos…)</div>
+  <div class="userlist" id="uDocs" style="max-height:30vh;overflow:auto"></div>
+  <div class="row2" id="uDocAddRow" style="margin-top:8px">
+    <button class="btn" id="uDocAdd">📷 Photo / 📂 Fichier</button>
+    <input type="file" id="uDocFile" accept="image/*,.pdf" style="display:none">
+    <span class="hint" style="align-self:center">Photos compressées automatiquement · PDF ≤ 2,5 Mo · visibles par le client</span>
   </div>
   <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button></div>
 </div></div>
@@ -514,8 +529,8 @@
 
 <script>
 const LS='gxo_planning_inout_v2', LS_FB='gxo_planning_fb_v2', LS_SESS='gxo_planning_sess_v2';
-const STATUSES={nonpresente:'Non présenté',attente:'En attente',cours:'En cours',termine:'Terminé'};
-const APP_VERSION='v2026.07.23-8';
+const STATUSES={nonpresente:'Non présenté',retard:'⏰ Retard',retann:'📞 Retard annoncé',attente:'En attente',cours:'En cours',termine:'Terminé'};
+const APP_VERSION='v2026.07.23-9';
 const GRAIL=['#0b4f8a','#7a3fae','#0f8a6e','#b8632a','#a8336b','#3a6ea5','#7a8a0f'];
 /* Base CR client préchargée (code destinataire colonne L -> CR). Source: extraction Données de Base BP destinataire. */
 const DEFAULT_CRMAP={"1917369":"PREP PAL","1968911":"PREP PAL","2059448":"PREP PAL dg 05/10/2018","2088369":"PALETTES CERCLEES ET FILMEES","3300806":"PALETTES CERCLEES ET FILMEES","3385691":"REFILMER PAL 80*120","3451403":"PREP PALETTES","3458077":"PALETTES CERCLEES ET FILMEES","3478522":"PREP PAL","4313247":"1 COLIS 1 SUPPORT JUNG +surcollage","6053137":"PALETTE CERCLEES ET FILMEES","6212256":"PALETTES CERCLEES ET FILMEES","6280792":"PREP PAL","7394758":"PREP PALETTES","7398006":"SUR PALETTES / FILMAGE MEME SI CERCLAGE","9223778":"PREP PAL + MONO REF","9223779":"PREP PALETTE + MONO REF","9223811":"SUR PALETTES + MONO REF","9223812":"PREP PALETTES + MONO REF","9338220":"PALETTES CERCLEES ET FILMEES","0S413":"PHOTO DEBUT MILLIEU FIN","0001410228":"1.80 M MAXI","0001438542":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0001454250":"PREP  PAL","0001460204":"PREP PAL","0001488290":"PREPARATION SUR PALETTE SK LE 040226","000149449":"PALETTE MONO REF 1M80 MAXI","0001494494":"palette mono ref hauteur max 1m70 sk le 211217","0001495706":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001495743":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001496150":"MONO REF sk le 19/10/17 suite mail TC — PREPARATION SUR PALETTE SK LE 040226","0001892895":"PREPARATION SUR PALETTE SK LE 040226","0001900673":"PREP PAL DG 25102019","0001968911":"PREPARATION SUR PALETTE SK LE 040226","0001969835":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0001982266":"chargement RAIL/ROUTE","0002012285":"PREPARATION SUR PALETTE SK LE 040226","0002012957":"MONO REF 1m80 MAXI","0002013994":"HAUTEUR 1M80 A RESPECTER POUR TOUTES LES REFS SAUF POUR LES 55' — (32\"/43\"/58\"/60\"/65\"/70\"/75\")-CHARGEMENT EN FOULEE","0002014466":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0002021829":"PREP PAL DG251019","0002023193":"HAUTEUR MAX 1,80m SAUF TELE / 1 REF PAR PALETTE — MONO REF","0002024058":"Palette mono référence - Hauteur maximum 1,60m — sur 80*120 ou 100*120 mail taj 161018","0002025772":"les 43' sont imperativement sur 2 couches","0002059448":"PREPARATION SUR PALETTE SK LE 040226","0002074403":"Hauteur maximum 1.80m","0002074404":"Hauteur maximum 1.80m","0002074447":"Hauteur maximum 2,20m","0002079873":"CHARGEMENT EN FOULEE","0002081082":"Palette mono référence - Hauteur maximum 2m","0002081932":"Hauteur maximum 1,80m","0002082543":"Palette mono référence - Hauteur maximum 1,80m","0002082724":"Hauteur maximum 1,80m","0002083548":"Lettre de voiture au BL","0002084979":"Hauteur maximum 1,30m","0002091143":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0002091488":"Palette mono référence","0002247972":"HAUTEUR MAX 1M80 TAJ LE 250718 sur AUDIO VIDEO","0002261256":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE","0002261259":"FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0002261280":"sur palettes 1.80M maxi MONO REF palettes cerclée sont à FILMER — DG 14/11/18 — 1M80 MAXI SUR LES BARRES DE SON-CHARGEMENT EN FOULEE","0002261289":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE — RAJOUTER INTERCALAIRE POUR SEPARER LES REFS DDE TAJ DU 160523","0002261332":"mono ref pour le brun sk le 180920","0002332826":"PREPARATION SUR PALETTE SK LE 040226","0002333762":"MONO REF","0002334922":"PREPARATION SUR PALETTE SK LE 040226 — Hauteur 2m20 max suite mail justin 130819","0002337062":"palette mono ref hauteur 2m30 maxi mail justin 30/11/18","0002337065":"hauteur 2m20 max suite demande justin 130819","0002353770":"PREPARATION SUR PALETTE SK LE 040226","0002354199":"CHARGEMENT EN FOULEE","0002412403":"Lettre de voiture au BL","0002413184":"PREPARATION SUR PALETTE 1.80M MAX SK LE 040226","0002437040":"HAUTEUR PALETTE 2M MAX suite mail justin 180122","0002445640":"MONO REF","0002472625":"MONO REF dg 2020","0002474775":"2M MAXI Mno Ref DG 06082020","0002493367":"CHARGEMENT EN FOULEE","0003145385":"hauteur max 1m60","0003149230":"1.80 MAXI","0003158815":"CHARGEMENT EN FOULEE","0003161334":"Rework HW-Q600B/ZF","0003168012":"hauteur 1m40 max suite mail justin","0003181180":"PALETTE MONO Ref","0003183556":"MONO REF 2m30 maxi","0003184595":"Palette mono ref — Lettre de voiture au BL","0003189265":"hauteur max 2m10 mail justin du 301020","0003192301":"MPS LOGYSTECH = PREPARATION SUR 2 COUCHES UNIQUEMENT 2M10 MAX — MECALOG = CR 80*120","0003257802":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet — lettre de voiture au BL","0003268316":"MONO REF  1m80  MAXI","0003269331":"sur palettes","0003273142":"MONO  REF 1m80 MAXI","0003273148":"MONO REF  1m80 MAXI","0003286549":"brun : CR 1m80 barre de son et tv inferieur à 55' — pas de cr tv sup à 55'","0003286552":"pas de cr pour les palettes sup à 55' sk le 091019","0003286559":"1M80 MAXI suite mail justin du 04/06/20","0003288855":"Palette mono référence - Hauteur maximum 2m","0003289192":"SUR PALETTES","0003317770":"Rework HW-Q600B/ZF-chargement RAIL/ROUTE","0003324139":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003327166":"1M80 MAXI suite mail justin du 23/09/20 — DOUBLE STACK POSSIBLE MAIL TAJ 26/03/24","0003373392":"Hauteur maximum 1,60m mono reference","0003385684":"PREPARATION SUR 80*120 MINIMUM  1 REFERENCE PAR PALETTE","0003385688":"Palette mono référence - Maximum 1 référence par palette","0003405142":"Palette mono référence - Préparation sur palette 80*120 sauf TV — hauteur 1m40 max suite mail justin","0003406030":"FRIGOS SUR PALETTES","0003406683":"PREPARATION SUR PALETTE SK LE 040226","0003418147":"Hauteur maximum 1,80m","0003424492":"PREP PAL DG251019","0003436533":"PREPARATION SUR PALETTE SK LE 040226","0003436542":"PREPARATION SUR PALETTE SK LE 040226","0003436544":"PREPARATION SUR PALETTE SK LE 040226","0003437603":"chargement RAIL/ROUTE","0003442483":"SUR PALETTES ET MONO REF","0003451403":"PREPARATION SUR PALETTE SK LE 040226","0003467687":"PREP SUR PAL","0003478522":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003863352":"PREPARATION SUR PALETTE SK LE 040226","0003903831":"hauteur max 1m80 suite mail justin 140521-CHARGEMENT EN FOULEE","0003991973":"PREPARATION SUR PALETTE SK LE 040226 — max 2M","0003993920":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0004172825":"préparation de produits sur palette pour les produits blancs GEM. — CHARGEMENT EN FOULEE","0004198369":"prep 1m60 suite mail tajamal du 091221","0004221729":"Rework HW-Q600B/ZF","0004244176":"Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0004244177":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet","0004248475":"Hauteur maximum 1,80m","0004256586":"Hauteur maximum 1,80m","0004257496":"Hauteur maxi palette 160cm  - mono reference - Mettre des CORNIERES — IMPERATIF SUR SUPPORT DE PROFONDEUR 120 CM MINIMUM","0004262634":"CHARGEMENT EN FOULEE","0004271167":"Hauteur maximum 1,80m","0004273238":"Hauteur maximum 1,40m","0004275446":"Hauteur maximum 1,80m","0004276019":"hauteur maximum 1,8m","0004292453":"SUR PALETTES MONO REF","0004304715":"Picking 1 colis 1 support 1 palette — *** ATTENTION  ETIQUETTE SPECIFIQUE A COLLER VOIR ADMIN****","0004308554":"Hauteur maximum 1,60m","0004313247":"JUNG 1 colis 1 support 1 palette DG — *** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004313601":"Hauteur maximum 1,60m","0004323104":"*** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004325267":"MONO REF  1M80 MAXI","0004325273":"MONO  REF 1M80 MAXI","0004325317":"MONO REF 1m80 MAXI","0004325327":"MONO REF 1m80 MAXI","0004325329":"MONO REF 1m80 MAXI","0004356173":"Hauteur maximum 1,80m","0004358350":"MONO REF 1m80 maxi","0004358369":"MONO REF  1m80 MAXI","0004358370":"MONO  REF 1m80 MAXI","0004358376":"MONO REF 1.80 MAXI","0004376542":"PREPARATION SUR PALETTE SK LE 040226","0004413893":"PREPARATION SUR PALETTE SK  LE 040226","0004771643":"PREPARATION SUR PALETTE SK LE 040226","0004795701":"CHARGEMENT EN FOULEE","0004967101":"PREPARATION SUR PALETTE SK LE 040226-chargement RAIL/ROUTE","0005336157":"PREP PAL","0005379038":"PREP PAL","0005384518":"SUR PALETTE 80*120 DDE JPJ LE 22/12/14 IMPERATIF","0005968566":"1M80 MAX METTRE DES INTERCALAIRES","0005968590":"1M80 MAX METTRE DES INTERCALAIRES SK LE 120624","0005983586":"1M70 MAIL TAJAMAL 17/07/24 CR","0005983620":"1M80 MAIL TAJAMAL 17/07/24 CR — DOUBLE STACK 65' et 70'","0005984458":"CHARGEMENT EN FOULEE","0006020280":"Palette mono référence - Hauteur maximum 2,20m — Lettre de voiture au BL","0006026492":"Palette mono référence - Hauteur maximum 1,80m SAUF TV — FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0006032397":"PREP PAL","0006040923":"Hauteur maximum 2m","0006042187":"Hauteur maximum 1,80m","0006053137":"Hauteur maximum 1,90m","0006056167":"Palette mono réf pour la prep brun /Hauteur maximum 1,80m sauf tele — MONO REF BLANC","0006066777":"PaL mono réf- Hauteur max 2m CORNIERES SUR TOUTES LES PAL IMPERATIF","0006076511":"Palette mono référence - Hauteur maximum 1,60m","0006084376":"* ATTENTION VOIR SOPHIE POUR LE PLAN ORTEC *CHARGEMENT EN FOULEE — hauteur 2m10 suite mail justin","0006084844":"CHARGEMENT EN FOULEE","0006085133":"MONO REF LORS DE LA PREP ET DE L EXPE","0006210950":"HAUTEUR MAX 1.80m sur 80*120 ou 100*120 si le produit le permet","0006237030":"Hauteur maximum 1,80m","0006255221":"HAUTEUR MAXI 2M00 / MONO REFERENCE /AUDIO/ VIDEO SUR 80*120 OU 100*120","0006280792":"PREPARATION SUR PALETTE SK LE 040226","0006286233":"Palette mono référence - Hauteur maximum 1,80m — Lettre de voiture au BL","0006286234":"Palette mono référence - Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0006286798":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006293456":"Hauteur maximum 1,80m mono reference- Préparation sur palette 80*120","0006295902":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006295903":"MONO REF  1m80 MAXI","0006299097":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120","0006448645":"1M80 MAX POUR LES PALETTES PICKING — DOUBLE STACK POUR  65 70 75\"","0006476525":"CHARGEMENT EN FOULEE","0006498863":"PREPARATION SUR PALETTE SK LE 040226","0007083510":"chargement RAIL/ROUTE","0007084775":"CHARGEMENT EN FOULEE","0007090098":"1M85 MAX SK LE 190326  DOUBLE STACK POUR  65 ET 70 POUCES — 1 ref par palette","0007330753":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — lettre de voiture au BL-CHARGEMENT EN FOULEE — !! double stacking 55'' 65'' 70''!!","0007372949":"SUR PALETTE DG","0007394758":"PREPARATIN SUR PALETTE SK LE 040226","0007398006":"PREPARATION SUR PALETTE SK LE 040226 — CHARGEMENT EN FOULEE","0007399103":"chargement RAIL/ROUTE","0007938006":"SUR PALETTE","0008321697":"Lettre de voiture au BL","0008321832":"PREPARATION SUR PALETTE SK LE 040226","0008372072":"Palette 2m20 max demande justin 130819","0008378983":"PREPARATION SUR PALETTE SK LE 040226","0008385062":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — Lettre de voiture au BL — DOUBLE STACK SUR 55 65 70 75\"","0009223778":"IMPERATIF SUR 80*120 SINON PAS DE DECHARGEMENT / 1 REF PAR PALETTE — HAUTEUR MAX 1M80 — PREP PAL dg 05/10/2018","0009223779":"HAUTEYR MAX 1M80 / PALETTE 80*120 IMPERATIF / PAL MONO REFERENCE — HAUTEUR MAX 1M80 / PAL MONO REFERENCE / 80*120 IMPERATIF — SUR PALETTES dg 05/10/2018","0009223811":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/2018","0009223812":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/18","0009235196":"Palette Mono ref / hauteur 2m maxi-CHARGEMENT EN FOULEE — pas d etetage sur ref sup ou egale à 55'","0009338220":"hauteur max 2m suite mail justin 130819-CHARGEMENT EN FOULEE — MO A REPALETISER SUR 80*120 ET CERCLAGE SK LE 241125","0009398792":"MONO REFERENCE / MAX 1M80"};
@@ -568,7 +583,16 @@ function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(
 function toMin(hm){if(!hm||!/^\d{1,2}:\d{2}$/.test(hm))return null;const p=hm.split(':');return(+p[0])*60+(+p[1]);}
 function railColor(code){let s=0;for(const c of code)s+=c.charCodeAt(0);return GRAIL[s%GRAIL.length];}
 
-function autoStatus(r){if(r.depart)return'termine';if(r.charg)return'cours';if(r.arrivee||r.quai)return'attente';return'nonpresente';}
+function autoStatus(r){if(r.depart)return'termine';if(r.charg)return'cours';if(r.arrivee||r.quai)return'attente';if(r.statut==='retann')return'retann';return'nonpresente';}
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+/* Statut effectif affiché : « Retard » automatique quand le RDV du JOUR est dépassé de 30 min sans arrivée */
+function effStatus(r){
+  if(r.statut==='nonpresente'&&state.currentDate===todayISO()){
+    const m=toMin(r.rdv);
+    if(m!=null){const n=new Date();if(n.getHours()*60+n.getMinutes()>m+30)return'retard';}
+  }
+  return r.statut;
+}
 function propagate(row){if(!row.groupage)return;dayData().rows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
 function setStamp(row,f){row[f]=row[f]?'':nowHM();row.statut=autoStatus(row);propagate(row);touch();render();}
 function touch(){dayData().updated=new Date().toISOString();save();}
@@ -580,7 +604,7 @@ function parseJour(v){v=String(v||'').trim();if(!v)return'';
   let a=+m[1],b=+m[2],y=+m[3];if(y<100)y+=2000;
   let dd,mm;if(a>12){dd=a;mm=b;}else if(b>12){mm=a;dd=b;}else{mm=a;dd=b;} // ambigu : format US (SheetJS) par défaut
   return y+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0');}
-function cleanTime(v){if(!v)return'';v=String(v).trim();if(/^0?\.\d+$/.test(v)){const f=parseFloat(v),mins=Math.round(f*1440);return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}const m=v.match(/(\d{1,2})[:hH](\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:v;}
+function cleanTime(v){if(!v)return'';v=String(v).trim();if(/^0?\.\d+$/.test(v)){const f=parseFloat(v),mins=Math.round(f*1440);return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}const m=v.match(/(\d{1,2})[:hH](\d{2})/);if(!m)return v;let h=+m[1];if(/p\.?\s?m/i.test(v)&&h<12)h+=12;if(/a\.?\s?m/i.test(v)&&h===12)h=0;return String(h).padStart(2,'0')+':'+m[2];}
 function buildRow(o){return{id:uid(),cl:o.cl||'',departure:o.departure||'',rdv:o.rdv||'',rdv0:o.rdv||'',transporteur:o.transporteur||'',groupage:o.groupage||'',destinataire:o.destinataire||'',destcode:o.destcode||'',cr:o.cr||'',quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'};}
 /* ---- Multiclient ----
    Chaque ligne IN/OUT porte un client (cl), affecté à l'import.
@@ -690,7 +714,7 @@ function render(){
   $('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
 
   rows.forEach((r,i)=>{
-    const tr=document.createElement('tr');tr.className=r.statut;
+    const tr=document.createElement('tr');tr.className=effStatus(r);
     const grouped=!!r.groupage;
     const prev=rows[i-1];
     const first=grouped&&(!prev||prev.groupage!==r.groupage||(prev.cl||'')!==(r.cl||''));
@@ -712,7 +736,7 @@ function render(){
         '<td><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'—')+'</span></td>'+
         '<td><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'—')+'</span></td>'+
         '<td><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'—')+'</span></td>'+
-        '<td><span class="pill '+r.statut+'">'+STATUSES[r.statut]+'</span></td>';
+        '<td><span class="pill '+effStatus(r)+'">'+(STATUSES[effStatus(r)]||r.statut)+'</span></td>';
     }else{
       const opEditable=!grouped||first;
       const head=clCell+
@@ -727,7 +751,7 @@ function render(){
         '<td class="timecell"><div class="stamp"><input value="'+(r.arrivee||'')+'" data-f="arrivee" placeholder="--:--"><button data-st="arrivee" title="Tamponner">⏱</button></div></td>'+
         '<td class="timecell"><div class="stamp"><input value="'+(r.charg||'')+'" data-f="charg" placeholder="--:--"><button data-st="charg" title="Tamponner">⏱</button></div></td>'+
         '<td class="timecell"><div class="stamp"><input value="'+(r.depart||'')+'" data-f="depart" placeholder="--:--"><button data-st="depart" title="Tamponner">⏱</button></div></td>'+
-        '<td><select class="statesel '+r.statut+'" data-f="statut">'+Object.entries(STATUSES).map(([k,v])=>'<option value="'+k+'" '+(k===r.statut?'selected':'')+'>'+v+'</option>').join('')+'</select></td>';
+        '<td><select class="statesel '+effStatus(r)+'" data-f="statut">'+Object.entries(STATUSES).filter(([k])=>k!=='retard').map(([k,v])=>'<option value="'+k+'" '+(k===r.statut?'selected':'')+'>'+v+'</option>').join('')+'</select></td>';
       }else{
         // ligne d'un groupage : opérationnel saisi une seule fois sur la 1re ligne du camion → miroir lecture seule
         ops=
@@ -735,7 +759,7 @@ function render(){
         '<td class="mirror"><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'—')+'</span></td>'+
         '<td class="mirror"><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'—')+'</span></td>'+
         '<td class="mirror"><span class="ro '+(r.depart?'':'empty')+'">'+(r.depart||'—')+'</span></td>'+
-        '<td class="mirror"><span class="pill '+r.statut+'">'+STATUSES[r.statut]+'</span></td>';
+        '<td class="mirror"><span class="pill '+effStatus(r)+'">'+(STATUSES[effStatus(r)]||r.statut)+'</span></td>';
       }
       tr.innerHTML=head+ops;
       // CR : modifiable, et alimente le mapping par code destinataire
@@ -761,6 +785,7 @@ function render(){
     '<div class="stat attente '+(activeFilter===''||activeFilter==='attente'?'':'dim')+'" data-flt="attente"><span class="dot"></span>Attente <b>'+c.attente+'</b></div>'+
     '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
     '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Terminé <b>'+c.termine+'</b></div>';
+{const _rt=scopedRows().filter(r=>{const e=effStatus(r);return e==='retard'||e==='retann';}).length;if(_rt)$('#stats').innerHTML+='<div class="stat" style="background:#fdecea;border-color:#c0392b"><span class="dot" style="background:#c0392b"></span>Retard <b>'+_rt+'</b></div>';}
   $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
   $('#countLine').textContent=units.length+' départ(s) (groupage = 1) · '+rows.length+' ligne(s) affichée(s) · '+all.length+' commande(s)';
   $('#syncState').className='sync-state '+(fb.enabled?'on':'local');
@@ -814,7 +839,7 @@ function exportXLSX(){
   if(state.flux==='cmp'){exportCompiled();return;}
   if(state.flux==='in'){exportInXLSX();return;}
   const rows=visibleRows();const data=[['CLIENT','DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','Quai','Heure Arrivée','Heure charg','Heure Départ','Statut']];
-  rows.forEach(r=>data.push([r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
+  rows.forEach(r=>data.push([r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,r.quai,r.arrivee,r.charg,r.depart,STATUSES[effStatus(r)]||r.statut]));
   const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:14},{wch:7},{wch:18},{wch:13},{wch:30},{wch:30},{wch:6},{wch:11},{wch:10},{wch:10},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Planning');XLSX.writeFile(wb,'Planning_IN-OUT_'+state.currentDate+'.xlsx');
 }
@@ -1068,6 +1093,22 @@ function openUnit(flux,id){
   $('#unitFields').style.display='flex';
   $('#unitOpActions').style.display=isClient?'none':'flex';
   $('#uCmtAddRow').style.display=isClient?'none':'flex';
+  // Retard annoncé (manuel) — visible tant que le camion n'est pas arrivé
+  const lateBtn=$('#uLate');
+  if(lateBtn){
+    const canLate=!isClient&&!r.arrivee&&!r.depart;
+    lateBtn.style.display=canLate?'':'none';
+    lateBtn.textContent=r.statut==='retann'?'✅ Lever le retard annoncé':'📞 Retard annoncé';
+    lateBtn.onclick=()=>{
+      const rr=findRow(curUnit.flux,curUnit.id);if(!rr)return;
+      const on=rr.statut!=='retann';
+      rr.statut=on?'retann':autoStatus(Object.assign({},rr,{statut:'nonpresente'}));
+      if(curUnit.flux==='in')propagateIn(rr);else propagate(rr);
+      addCommentTo(curUnit.flux,rr,on?'📞 Retard annoncé par le client':'📞 Retard annoncé levé');
+      touch();save();render();openUnit(curUnit.flux,curUnit.id);
+    };
+  }
+  loadUnitDocs(flux,r,isClient);
   renderUnitComments(flux,r);
   $('#unitModal').classList.add('open');
 }
@@ -1173,7 +1214,7 @@ function renderIn(isClient){
   const body=$('#body');body.innerHTML='';
   const empty=scoped.length===0;$('#emptyState').style.display=empty?'block':'none';$('.tablewrap').style.display=empty?'none':'block';
   rows.forEach((r,i)=>{
-    const tr=document.createElement('tr');tr.className=r.statut;
+    const tr=document.createElement('tr');tr.className=effStatus(r);
     const grouped=!!r.container,prev=rows[i-1],first=grouped&&(!prev||prev.container!==r.container||(prev.cl||'')!==(r.cl||''));
     if(grouped){tr.classList.add('grp');tr.style.setProperty('--grail',railColor(r.container));}
     const count=grouped?scoped.filter(x=>x.container===r.container&&(x.cl||'')===(r.cl||'')).length:0;
@@ -1219,6 +1260,7 @@ function renderIn(isClient){
     '<div class="stat attente '+(activeFilter===''||activeFilter==='attente'?'':'dim')+'" data-flt="attente"><span class="dot"></span>Attente <b>'+c.attente+'</b></div>'+
     '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
     '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Termin\u00e9 <b>'+c.termine+'</b></div>';
+{const _rt=scopedInRows().filter(r=>{const e=effStatus(r);return e==='retard'||e==='retann';}).length;if(_rt)$('#stats').innerHTML+='<div class="stat" style="background:#fdecea;border-color:#c0392b"><span class="dot" style="background:#c0392b"></span>Retard <b>'+_rt+'</b></div>';}
   $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
   const totQty=all.reduce((s,r)=>s+(r.qty||0),0);
   $('#countLine').textContent=rows.length+' ligne(s) \u00b7 '+buildUnits(all).length+' conteneur(s)/r\u00e9ception(s) \u00b7 \u03a3 '+totQty+' qt\u00e9';
@@ -1252,7 +1294,7 @@ function exportInXLSX(){
   const d=dayData();
   const header=['Client','Time of delivery','Container No.','MESSAGE','SD Document','Quantit\u00e9s','Quai','Heure Arriv\u00e9e','Heure decharg','Heure D\u00e9part','Statut'];
   const data=[header];
-  scopedInRows().slice().sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.cl||'').localeCompare(b.cl||'')||(a.container||'').localeCompare(b.container||'')).forEach(r=>data.push([r.cl||'',r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]]));
+  scopedInRows().slice().sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.cl||'').localeCompare(b.cl||'')||(a.container||'').localeCompare(b.container||'')).forEach(r=>data.push([r.cl||'',r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[effStatus(r)]||r.statut]));
   const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:13},{wch:14},{wch:22},{wch:13},{wch:10},{wch:6},{wch:11},{wch:11},{wch:11},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Reception IN');XLSX.writeFile(wb,'Planning_IN_'+state.currentDate+'.xlsx');
 }
@@ -1347,7 +1389,7 @@ function quaiOccupancy(){
   const scan=(rows,flux)=>{const seen=new Set();rows.forEach(r=>{const q=(r.quai||'').trim();if(!q)return;
     const uk=flux+':'+(r.cl||'')+':'+((flux==='in'?r.container:r.groupage)||r.id);
     if(seen.has(uk))return;seen.add(uk);
-    add(q.toUpperCase(),{flux,id:r.id,label:flux==='in'?(r.container||'réception'):(r.groupage||r.departure),cl:r.cl||'',rdv:r.rdv||'',statut:r.statut,arrivee:r.arrivee,depart:r.depart});});};
+    add(q.toUpperCase(),{flux,id:r.id,label:flux==='in'?(r.container||'réception'):(r.groupage||r.departure),cl:r.cl||'',rdv:r.rdv||'',statut:r.statut,eff:effStatus(r),arrivee:r.arrivee,depart:r.depart});});};
   scan(dayData().rows||[],'out');scan(dayData().inRows||[],'in');
   return occ;
 }
@@ -1521,8 +1563,8 @@ function drawPlan(occ){
     planNotesDrawn.push({id,hit:{ax:nte.x,ay:nte.y,rot:nte.rot||0,w:w0,h:h0}});
   });
   // Quais : étiquette (nom en noir) + rectangles camions dessous (couleur = statut, info = camion)
-  const ST_FILL={reserved:'rgba(232,169,22,.20)','busy-attente':'rgba(232,169,22,.42)','busy-cours':'rgba(46,111,216,.40)',hs:'rgba(192,57,43,.30)'};
-  const ST_LINE={reserved:'#c9a227','busy-attente':'#b97f10','busy-cours':'#2e6fd8',hs:'#c0392b',free:'#9aa5b1'};
+  const ST_FILL={reserved:'rgba(232,169,22,.20)',late:'rgba(192,57,43,.20)','busy-attente':'rgba(232,169,22,.42)','busy-cours':'rgba(46,111,216,.40)',hs:'rgba(192,57,43,.30)'};
+  const ST_LINE={reserved:'#c9a227',late:'#c0392b','busy-attente':'#b97f10','busy-cours':'#2e6fd8',hs:'#c0392b',free:'#9aa5b1'};
   hsList.forEach(hsp=>{
     const r0=hsp.r,c0=hsp.c,key=r0+'_'+c0;
     const pos=(state.settings.planPos||{})[key]||{};
@@ -1549,11 +1591,11 @@ function drawPlan(occ){
     for(let i=0;i<n;i++){
       const y1=lh+slotGap+i*(slotH+slotGap),y2=y1+slotH;
       const o=os[i];
-      let st=stq==='hs'?'hs':(o?(o.arrivee?(o.statut==='cours'?'busy-cours':'busy-attente'):'reserved'):'free');
+      let st=stq==='hs'?'hs':(o?(o.arrivee?(o.statut==='cours'?'busy-cours':'busy-attente'):((o.eff==='retard'||o.eff==='retann')?'late':'reserved')):'free');
       if(ST_FILL[st]){ctx.fillStyle=ST_FILL[st];ctx.fillRect(0,y1,lw,y2-y1);}
       else{ctx.fillStyle='rgba(154,165,177,.07)';ctx.fillRect(0,y1,lw,y2-y1);}
       ctx.lineWidth=(st==='free'?1:2)/z;ctx.strokeStyle=ST_LINE[st];
-      if(st==='reserved')ctx.setLineDash([5/z,4/z]);
+      if(st==='reserved'||st==='late')ctx.setLineDash([5/z,4/z]);
       ctx.strokeRect(.5/z,y1+.5/z,lw-1/z,y2-y1-1/z);
       ctx.setLineDash([]);
       let info=st==='hs'?'HS':(o?o.label:'');
@@ -1706,6 +1748,52 @@ function exportPlanXLSX(){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Plan quais');XLSX.writeFile(wb,'Plan_quais_'+state.currentDate+'.xlsx');
 }
 seedQuaisFromPlan();
+
+/* ===================== DOCUMENTS DE RDV (CMR, BL, photos) ===================== */
+/* Stockés dans Firebase sous docs/<date>/<unité> — chargés à l'ouverture de la fiche,
+   jamais poussés avec le planning (pour ne pas alourdir la sync temps réel). */
+function docKey(flux,r){return 'docs/'+state.currentDate+'/'+fbSafe(flux==='in'?('I_'+(r.cl||'')+'_'+(r.container||r.id)):('O_'+(r.cl||'')+'_'+(r.groupage||r.departure||r.id)));}
+function dataURLBlob(d){const p=d.split(',');const mime=(p[0].match(/data:(.*?);/)||[])[1]||'application/octet-stream';const bin=atob(p[1]);const u8=new Uint8Array(bin.length);for(let i=0;i<u8.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:mime});}
+let curDocs=[],curDocsRO=false;
+function renderUnitDocs(){
+  const host=$('#uDocs');if(!host)return;
+  if(!fb.enabled){host.innerHTML='<div class="cmt" style="color:var(--muted)">📎 Les documents nécessitent la synchronisation active (badge « Sync live »).</div>';$('#uDocAddRow').style.display='none';return;}
+  $('#uDocAddRow').style.display=curDocsRO?'none':'flex';
+  host.innerHTML=curDocs.length?curDocs.map((d,i)=>'<div class="cmt"><div class="cmt-h"><b>'+(String(d.t||'').includes('pdf')?'📄':'🖼')+' '+String(d.n||'document').replace(/</g,'&lt;')+'</b><span>'+(d.by||'—')+' · '+new Date(d.ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span></div><div class="row2" style="margin-top:6px"><button class="btn" data-dview="'+i+'">👁 Ouvrir</button><button class="btn" data-ddl="'+i+'">⬇ Télécharger</button>'+(curDocsRO?'':'<button class="btn danger" data-ddel="'+i+'" style="margin-left:auto">🗑</button>')+'</div></div>').join(''):'<div class="cmt" style="color:var(--muted)">Aucun document sur ce RDV.'+(curDocsRO?'':' Ajoute une photo du CMR ou un PDF.')+'</div>';
+  host.querySelectorAll('[data-dview]').forEach(b=>b.onclick=()=>{const d=curDocs[+b.dataset.dview];window.open(URL.createObjectURL(dataURLBlob(d.d)),'_blank');});
+  host.querySelectorAll('[data-ddl]').forEach(b=>b.onclick=()=>{const d=curDocs[+b.dataset.ddl];const a=document.createElement('a');a.href=URL.createObjectURL(dataURLBlob(d.d));a.download=d.n||'document';a.click();});
+  host.querySelectorAll('[data-ddel]').forEach(b=>b.onclick=()=>{
+    if(!confirm('Supprimer ce document ?'))return;
+    const r=findRow(curUnit.flux,curUnit.id);if(!r)return;
+    curDocs.splice(+b.dataset.ddel,1);
+    try{fb.db.ref(docKey(curUnit.flux,r)).set(curDocs);}catch(e){}
+    renderUnitDocs();
+  });
+}
+function loadUnitDocs(flux,r,ro){
+  curDocs=[];curDocsRO=!!ro;renderUnitDocs();
+  if(!fb.enabled)return;
+  try{fb.db.ref(docKey(flux,r)).once('value').then(s=>{curDocs=toArr(s.val());renderUnitDocs();}).catch(()=>{});}catch(e){}
+}
+$('#uDocAdd').onclick=()=>$('#uDocFile').click();
+$('#uDocFile').onchange=e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const r=findRow(curUnit.flux,curUnit.id);if(!r)return;
+  const done=(dataURL,name,type)=>{
+    if(curDocs.length>=12){alert('Maximum 12 documents par RDV.');return;}
+    curDocs.push({id:uid(),n:name,t:type,ts:new Date().toISOString(),by:(session&&session.label)||'—',d:dataURL});
+    try{fb.db.ref(docKey(curUnit.flux,r)).set(curDocs);}catch(err){alert('Enregistrement impossible (connexion ?).');curDocs.pop();}
+    renderUnitDocs();
+  };
+  if(/^image\//.test(f.type)){
+    const img=new Image();
+    img.onload=()=>{const MAX=1400;let w=img.width,h=img.height;const k=Math.min(1,MAX/Math.max(w,h));w=Math.round(w*k)||1;h=Math.round(h*k)||1;const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);done(cv.toDataURL('image/jpeg',.72),f.name.replace(/\.[^.]+$/,'')+'.jpg','image/jpeg');};
+    img.src=URL.createObjectURL(f);
+  }else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+    if(f.size>2.5*1024*1024){alert('PDF trop lourd (max 2,5 Mo) — préfère une photo.');return;}
+    const rd=new FileReader();rd.onload=ev=>done(ev.target.result,f.name,'application/pdf');rd.readAsDataURL(f);
+  }else alert('Formats acceptés : photos et PDF.');
+};
 
 /* ===================== SCAN & ÉTIQUETTES (QR / code-barres) ===================== */
 /* Étiquette générée par l'admin (payload GXO:O|I:client:code), glissée au dossier.
@@ -1860,6 +1948,7 @@ function showUpdateBanner(nv){
   $('#updGo').onclick=()=>{location.replace(location.href.split('#')[0].split('?')[0]+'?u='+Date.now()+(location.hash||''));};
 }
 setInterval(checkUpdate,10*60*1000);
+setInterval(()=>{if(document.visibilityState!=='visible'||!session)return;if(document.querySelector('.overlay.open'))return;if(state.flux==='in'||state.flux==='out')render();},60000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate();});
 setTimeout(checkUpdate,4000);
 
