@@ -131,6 +131,21 @@
   #qrReader video{border-radius:10px}
   #updBanner{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:10000;background:#1b2430;color:#fff;font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:0 0 12px 12px;box-shadow:0 6px 20px rgba(0,0,0,.3);display:flex;gap:12px;align-items:center}
   #updBanner button{background:#4a86e8;color:#fff;border:0;border-radius:8px;padding:6px 14px;font-weight:800;cursor:pointer;font-size:13px}
+  .chgrid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start}
+  @media(max-width:820px){.chgrid{grid-template-columns:1fr}}
+  .chverdict{margin:8px 0 10px;padding:9px 12px;border-radius:9px;font-weight:700;font-size:13px;border:1.5px solid var(--line)}
+  .chverdict.good{background:var(--cours-bg);border-color:var(--cours-bd)}
+  .chverdict.warn{background:var(--attente-bg);border-color:var(--attente-bd)}
+  .chbars{display:flex;align-items:flex-end;gap:3px;height:96px;padding:6px 2px 0}
+  .chcol{flex:1;display:flex;flex-direction:column-reverse;gap:1px;position:relative;min-width:10px}
+  .chcol .in{background:var(--cours-bd);border-radius:2px 2px 0 0}
+  .chcol .out{background:var(--attente-bd);border-radius:2px 2px 0 0}
+  .chcol.sep{border-left:2px dashed var(--ink);margin-left:4px;padding-left:4px}
+  .chlab{display:flex;gap:3px;padding:2px 2px 0}
+  .chlab span{flex:1;text-align:center;font-size:9.5px;color:var(--muted);min-width:10px}
+  .chlab span.sep{border-left:2px solid transparent;margin-left:4px;padding-left:4px}
+  .chleg{font-size:11px;color:var(--muted);margin-top:4px}
+  .chleg i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
   .rdvmod{font-size:11px;margin-left:4px;cursor:help}
   #planHost{display:none;padding:4px 2px 30px}
   .planbar{display:flex;align-items:center;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
@@ -350,6 +365,13 @@
   <div class="scroll"><table class="dashtable" id="dashByType"></table></div>
   <div class="dashsection" id="dashSec2">Par transporteur</div>
   <div class="scroll"><table class="dashtable" id="dashByTransp"></table></div>
+  <div class="dashsection" style="display:flex;align-items:center;gap:10px">⚖️ Équilibrage de la charge (IN + OUT)
+    <span class="spacer" style="flex:1"></span>
+    <label style="font-size:11.5px;color:var(--muted)">Bornes</label>
+    <input type="time" id="chT1" style="width:92px">
+    <input type="time" id="chT2" style="width:92px">
+  </div>
+  <div id="chargeWrap"></div>
   <div class="modal-actions"><button class="btn" id="dashExport">⬇ Exporter le dashboard</button></div>
 </div></div>
 
@@ -493,7 +515,7 @@
 <script>
 const LS='gxo_planning_inout_v2', LS_FB='gxo_planning_fb_v2', LS_SESS='gxo_planning_sess_v2';
 const STATUSES={nonpresente:'Non présenté',attente:'En attente',cours:'En cours',termine:'Terminé'};
-const APP_VERSION='v2026.07.21-5';
+const APP_VERSION='v2026.07.22-7';
 const GRAIL=['#0b4f8a','#7a3fae','#0f8a6e','#b8632a','#a8336b','#3a6ea5','#7a8a0f'];
 /* Base CR client préchargée (code destinataire colonne L -> CR). Source: extraction Données de Base BP destinataire. */
 const DEFAULT_CRMAP={"1917369":"PREP PAL","1968911":"PREP PAL","2059448":"PREP PAL dg 05/10/2018","2088369":"PALETTES CERCLEES ET FILMEES","3300806":"PALETTES CERCLEES ET FILMEES","3385691":"REFILMER PAL 80*120","3451403":"PREP PALETTES","3458077":"PALETTES CERCLEES ET FILMEES","3478522":"PREP PAL","4313247":"1 COLIS 1 SUPPORT JUNG +surcollage","6053137":"PALETTE CERCLEES ET FILMEES","6212256":"PALETTES CERCLEES ET FILMEES","6280792":"PREP PAL","7394758":"PREP PALETTES","7398006":"SUR PALETTES / FILMAGE MEME SI CERCLAGE","9223778":"PREP PAL + MONO REF","9223779":"PREP PALETTE + MONO REF","9223811":"SUR PALETTES + MONO REF","9223812":"PREP PALETTES + MONO REF","9338220":"PALETTES CERCLEES ET FILMEES","0S413":"PHOTO DEBUT MILLIEU FIN","0001410228":"1.80 M MAXI","0001438542":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0001454250":"PREP  PAL","0001460204":"PREP PAL","0001488290":"PREPARATION SUR PALETTE SK LE 040226","000149449":"PALETTE MONO REF 1M80 MAXI","0001494494":"palette mono ref hauteur max 1m70 sk le 211217","0001495706":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001495743":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001496150":"MONO REF sk le 19/10/17 suite mail TC — PREPARATION SUR PALETTE SK LE 040226","0001892895":"PREPARATION SUR PALETTE SK LE 040226","0001900673":"PREP PAL DG 25102019","0001968911":"PREPARATION SUR PALETTE SK LE 040226","0001969835":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0001982266":"chargement RAIL/ROUTE","0002012285":"PREPARATION SUR PALETTE SK LE 040226","0002012957":"MONO REF 1m80 MAXI","0002013994":"HAUTEUR 1M80 A RESPECTER POUR TOUTES LES REFS SAUF POUR LES 55' — (32\"/43\"/58\"/60\"/65\"/70\"/75\")-CHARGEMENT EN FOULEE","0002014466":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0002021829":"PREP PAL DG251019","0002023193":"HAUTEUR MAX 1,80m SAUF TELE / 1 REF PAR PALETTE — MONO REF","0002024058":"Palette mono référence - Hauteur maximum 1,60m — sur 80*120 ou 100*120 mail taj 161018","0002025772":"les 43' sont imperativement sur 2 couches","0002059448":"PREPARATION SUR PALETTE SK LE 040226","0002074403":"Hauteur maximum 1.80m","0002074404":"Hauteur maximum 1.80m","0002074447":"Hauteur maximum 2,20m","0002079873":"CHARGEMENT EN FOULEE","0002081082":"Palette mono référence - Hauteur maximum 2m","0002081932":"Hauteur maximum 1,80m","0002082543":"Palette mono référence - Hauteur maximum 1,80m","0002082724":"Hauteur maximum 1,80m","0002083548":"Lettre de voiture au BL","0002084979":"Hauteur maximum 1,30m","0002091143":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0002091488":"Palette mono référence","0002247972":"HAUTEUR MAX 1M80 TAJ LE 250718 sur AUDIO VIDEO","0002261256":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE","0002261259":"FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0002261280":"sur palettes 1.80M maxi MONO REF palettes cerclée sont à FILMER — DG 14/11/18 — 1M80 MAXI SUR LES BARRES DE SON-CHARGEMENT EN FOULEE","0002261289":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE — RAJOUTER INTERCALAIRE POUR SEPARER LES REFS DDE TAJ DU 160523","0002261332":"mono ref pour le brun sk le 180920","0002332826":"PREPARATION SUR PALETTE SK LE 040226","0002333762":"MONO REF","0002334922":"PREPARATION SUR PALETTE SK LE 040226 — Hauteur 2m20 max suite mail justin 130819","0002337062":"palette mono ref hauteur 2m30 maxi mail justin 30/11/18","0002337065":"hauteur 2m20 max suite demande justin 130819","0002353770":"PREPARATION SUR PALETTE SK LE 040226","0002354199":"CHARGEMENT EN FOULEE","0002412403":"Lettre de voiture au BL","0002413184":"PREPARATION SUR PALETTE 1.80M MAX SK LE 040226","0002437040":"HAUTEUR PALETTE 2M MAX suite mail justin 180122","0002445640":"MONO REF","0002472625":"MONO REF dg 2020","0002474775":"2M MAXI Mno Ref DG 06082020","0002493367":"CHARGEMENT EN FOULEE","0003145385":"hauteur max 1m60","0003149230":"1.80 MAXI","0003158815":"CHARGEMENT EN FOULEE","0003161334":"Rework HW-Q600B/ZF","0003168012":"hauteur 1m40 max suite mail justin","0003181180":"PALETTE MONO Ref","0003183556":"MONO REF 2m30 maxi","0003184595":"Palette mono ref — Lettre de voiture au BL","0003189265":"hauteur max 2m10 mail justin du 301020","0003192301":"MPS LOGYSTECH = PREPARATION SUR 2 COUCHES UNIQUEMENT 2M10 MAX — MECALOG = CR 80*120","0003257802":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet — lettre de voiture au BL","0003268316":"MONO REF  1m80  MAXI","0003269331":"sur palettes","0003273142":"MONO  REF 1m80 MAXI","0003273148":"MONO REF  1m80 MAXI","0003286549":"brun : CR 1m80 barre de son et tv inferieur à 55' — pas de cr tv sup à 55'","0003286552":"pas de cr pour les palettes sup à 55' sk le 091019","0003286559":"1M80 MAXI suite mail justin du 04/06/20","0003288855":"Palette mono référence - Hauteur maximum 2m","0003289192":"SUR PALETTES","0003317770":"Rework HW-Q600B/ZF-chargement RAIL/ROUTE","0003324139":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003327166":"1M80 MAXI suite mail justin du 23/09/20 — DOUBLE STACK POSSIBLE MAIL TAJ 26/03/24","0003373392":"Hauteur maximum 1,60m mono reference","0003385684":"PREPARATION SUR 80*120 MINIMUM  1 REFERENCE PAR PALETTE","0003385688":"Palette mono référence - Maximum 1 référence par palette","0003405142":"Palette mono référence - Préparation sur palette 80*120 sauf TV — hauteur 1m40 max suite mail justin","0003406030":"FRIGOS SUR PALETTES","0003406683":"PREPARATION SUR PALETTE SK LE 040226","0003418147":"Hauteur maximum 1,80m","0003424492":"PREP PAL DG251019","0003436533":"PREPARATION SUR PALETTE SK LE 040226","0003436542":"PREPARATION SUR PALETTE SK LE 040226","0003436544":"PREPARATION SUR PALETTE SK LE 040226","0003437603":"chargement RAIL/ROUTE","0003442483":"SUR PALETTES ET MONO REF","0003451403":"PREPARATION SUR PALETTE SK LE 040226","0003467687":"PREP SUR PAL","0003478522":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003863352":"PREPARATION SUR PALETTE SK LE 040226","0003903831":"hauteur max 1m80 suite mail justin 140521-CHARGEMENT EN FOULEE","0003991973":"PREPARATION SUR PALETTE SK LE 040226 — max 2M","0003993920":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0004172825":"préparation de produits sur palette pour les produits blancs GEM. — CHARGEMENT EN FOULEE","0004198369":"prep 1m60 suite mail tajamal du 091221","0004221729":"Rework HW-Q600B/ZF","0004244176":"Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0004244177":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet","0004248475":"Hauteur maximum 1,80m","0004256586":"Hauteur maximum 1,80m","0004257496":"Hauteur maxi palette 160cm  - mono reference - Mettre des CORNIERES — IMPERATIF SUR SUPPORT DE PROFONDEUR 120 CM MINIMUM","0004262634":"CHARGEMENT EN FOULEE","0004271167":"Hauteur maximum 1,80m","0004273238":"Hauteur maximum 1,40m","0004275446":"Hauteur maximum 1,80m","0004276019":"hauteur maximum 1,8m","0004292453":"SUR PALETTES MONO REF","0004304715":"Picking 1 colis 1 support 1 palette — *** ATTENTION  ETIQUETTE SPECIFIQUE A COLLER VOIR ADMIN****","0004308554":"Hauteur maximum 1,60m","0004313247":"JUNG 1 colis 1 support 1 palette DG — *** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004313601":"Hauteur maximum 1,60m","0004323104":"*** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004325267":"MONO REF  1M80 MAXI","0004325273":"MONO  REF 1M80 MAXI","0004325317":"MONO REF 1m80 MAXI","0004325327":"MONO REF 1m80 MAXI","0004325329":"MONO REF 1m80 MAXI","0004356173":"Hauteur maximum 1,80m","0004358350":"MONO REF 1m80 maxi","0004358369":"MONO REF  1m80 MAXI","0004358370":"MONO  REF 1m80 MAXI","0004358376":"MONO REF 1.80 MAXI","0004376542":"PREPARATION SUR PALETTE SK LE 040226","0004413893":"PREPARATION SUR PALETTE SK  LE 040226","0004771643":"PREPARATION SUR PALETTE SK LE 040226","0004795701":"CHARGEMENT EN FOULEE","0004967101":"PREPARATION SUR PALETTE SK LE 040226-chargement RAIL/ROUTE","0005336157":"PREP PAL","0005379038":"PREP PAL","0005384518":"SUR PALETTE 80*120 DDE JPJ LE 22/12/14 IMPERATIF","0005968566":"1M80 MAX METTRE DES INTERCALAIRES","0005968590":"1M80 MAX METTRE DES INTERCALAIRES SK LE 120624","0005983586":"1M70 MAIL TAJAMAL 17/07/24 CR","0005983620":"1M80 MAIL TAJAMAL 17/07/24 CR — DOUBLE STACK 65' et 70'","0005984458":"CHARGEMENT EN FOULEE","0006020280":"Palette mono référence - Hauteur maximum 2,20m — Lettre de voiture au BL","0006026492":"Palette mono référence - Hauteur maximum 1,80m SAUF TV — FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0006032397":"PREP PAL","0006040923":"Hauteur maximum 2m","0006042187":"Hauteur maximum 1,80m","0006053137":"Hauteur maximum 1,90m","0006056167":"Palette mono réf pour la prep brun /Hauteur maximum 1,80m sauf tele — MONO REF BLANC","0006066777":"PaL mono réf- Hauteur max 2m CORNIERES SUR TOUTES LES PAL IMPERATIF","0006076511":"Palette mono référence - Hauteur maximum 1,60m","0006084376":"* ATTENTION VOIR SOPHIE POUR LE PLAN ORTEC *CHARGEMENT EN FOULEE — hauteur 2m10 suite mail justin","0006084844":"CHARGEMENT EN FOULEE","0006085133":"MONO REF LORS DE LA PREP ET DE L EXPE","0006210950":"HAUTEUR MAX 1.80m sur 80*120 ou 100*120 si le produit le permet","0006237030":"Hauteur maximum 1,80m","0006255221":"HAUTEUR MAXI 2M00 / MONO REFERENCE /AUDIO/ VIDEO SUR 80*120 OU 100*120","0006280792":"PREPARATION SUR PALETTE SK LE 040226","0006286233":"Palette mono référence - Hauteur maximum 1,80m — Lettre de voiture au BL","0006286234":"Palette mono référence - Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0006286798":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006293456":"Hauteur maximum 1,80m mono reference- Préparation sur palette 80*120","0006295902":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006295903":"MONO REF  1m80 MAXI","0006299097":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120","0006448645":"1M80 MAX POUR LES PALETTES PICKING — DOUBLE STACK POUR  65 70 75\"","0006476525":"CHARGEMENT EN FOULEE","0006498863":"PREPARATION SUR PALETTE SK LE 040226","0007083510":"chargement RAIL/ROUTE","0007084775":"CHARGEMENT EN FOULEE","0007090098":"1M85 MAX SK LE 190326  DOUBLE STACK POUR  65 ET 70 POUCES — 1 ref par palette","0007330753":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — lettre de voiture au BL-CHARGEMENT EN FOULEE — !! double stacking 55'' 65'' 70''!!","0007372949":"SUR PALETTE DG","0007394758":"PREPARATIN SUR PALETTE SK LE 040226","0007398006":"PREPARATION SUR PALETTE SK LE 040226 — CHARGEMENT EN FOULEE","0007399103":"chargement RAIL/ROUTE","0007938006":"SUR PALETTE","0008321697":"Lettre de voiture au BL","0008321832":"PREPARATION SUR PALETTE SK LE 040226","0008372072":"Palette 2m20 max demande justin 130819","0008378983":"PREPARATION SUR PALETTE SK LE 040226","0008385062":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — Lettre de voiture au BL — DOUBLE STACK SUR 55 65 70 75\"","0009223778":"IMPERATIF SUR 80*120 SINON PAS DE DECHARGEMENT / 1 REF PAR PALETTE — HAUTEUR MAX 1M80 — PREP PAL dg 05/10/2018","0009223779":"HAUTEYR MAX 1M80 / PALETTE 80*120 IMPERATIF / PAL MONO REFERENCE — HAUTEUR MAX 1M80 / PAL MONO REFERENCE / 80*120 IMPERATIF — SUR PALETTES dg 05/10/2018","0009223811":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/2018","0009223812":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/18","0009235196":"Palette Mono ref / hauteur 2m maxi-CHARGEMENT EN FOULEE — pas d etetage sur ref sup ou egale à 55'","0009338220":"hauteur max 2m suite mail justin 130819-CHARGEMENT EN FOULEE — MO A REPALETISER SUR 80*120 ET CERCLAGE SK LE 241125","0009398792":"MONO REFERENCE / MAX 1M80"};
@@ -566,7 +588,34 @@ function scopedInRows(){const sc=clientScope();return sc?dayData().inRows.filter
 function seedCrMap(rows){rows.forEach(r=>{if(r.destcode&&r.cr&&state.crMap[r.destcode]===undefined)state.crMap[r.destcode]=r.cr;});}
 function applyCrMap(){Object.values(state.days).forEach(d=>d.rows.forEach(r=>{if(r.destcode&&state.crMap[r.destcode]!==undefined)r.cr=state.crMap[r.destcode];}));}
 function mapRecords(records){return records.map(r=>{const g={};for(const k in r)g[normKey(k)]=r[k];const pick=function(){for(var i=0;i<arguments.length;i++){var k=arguments[i];if(g[k]!==undefined&&String(g[k]).trim()!=='')return String(g[k]).trim();}return'';};return buildRow({departure:pick('n° departure','no departure','departure','départ'),rdv:cleanTime(pick('heure de chargement','rdv','heure charg.','heure chargement')),transporteur:pick('transporteur l2 (facturation)','transporteur','transporteur l2'),groupage:pick('group','groupage','groupe'),destinataire:pick('destinataire description','destinataire'),destcode:pick('destinataire code','code destinataire','destcode'),cr:pick('cr','cr client')});}).filter(r=>r.departure);}
-function parseTSV(text){const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='');if(lines.length<2)return[];const h=lines[0].split('\t');return lines.slice(1).map(l=>{const c=l.split('\t');const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
+/* Découpe un collage en LIGNES LOGIQUES : une cellule Excel/TMS contenant des retours à la ligne
+   est copiée entre guillemets ("…\n…") — on ne coupe la ligne que hors guillemets. */
+function splitLogicalRows(text){
+  text=text.replace(/\r/g,'');
+  const rows=[];let cur=[];let cell='';let inQ=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(inQ){
+      if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else inQ=false;}
+      else cell+=ch;
+    }else{
+      if(ch==='"'&&cell==='')inQ=true;
+      else if(ch==='\t'){cur.push(cell);cell='';}
+      else if(ch==='\n'){cur.push(cell);cell='';if(cur.some(c=>c.trim()!==''))rows.push(cur);cur=[];}
+      else cell+=ch;
+    }
+  }
+  cur.push(cell);if(cur.some(c=>c.trim()!==''))rows.push(cur);
+  // Les retours à la ligne INTERNES aux cellules deviennent des « / »
+  return rows.map(r=>r.map(c=>c.replace(/\n+/g,' / ').trim()));
+}
+function parseTSV(text){
+  const lines=splitLogicalRows(text);
+  window.__tsvHeaders=lines.length?lines[0]:[];
+  if(lines.length<2)return[];
+  const h=lines[0];
+  return lines.slice(1).map(c=>{const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});
+}
 function mergeRows(target,incoming,replace,cl){
   cl=cl||'';
   const others=target.filter(r=>(r.cl||'')!==cl);           // les autres clients ne sont jamais touchés
@@ -750,6 +799,7 @@ function exportDash(){
   const byT={};units.forEach(u=>{const t=u.rep.transporteur||'(sans)';(byT[t]=byT[t]||[]).push(u);});
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(types).sort()),'Par type');
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(byT).sort((a,b)=>b[1].length-a[1].length)),'Par transporteur');
+  XLSX.utils.book_append_sheet(wb,chargeSheet(),'Charge');
   XLSX.writeFile(wb,'Dashboard_ponctualite_'+state.currentDate+'.xlsx');
 }
 
@@ -869,7 +919,70 @@ $('#fluxSeg').addEventListener('click',e=>{const b=e.target.closest('button');if
 $('#dateInput').onchange=e=>{state.currentDate=e.target.value;activeFilter='';if(fb.enabled)subData();render();};
 $('#searchInput').oninput=render;$('#transpFilter').onchange=render;$('#clientFilter').onchange=render;
 $('#printBtn').onclick=()=>window.print();$('#exportBtn').onclick=exportXLSX;
-$('#dashBtn').onclick=()=>{renderDash();$('#dashModal').classList.add('open');};
+/* ===== Équilibrage de la charge (IN+OUT) : répartition des camions par tranches horaires ===== */
+function chargeBounds(){const t1=state.settings.chargeT1||'13:00',t2=state.settings.chargeT2||'17:00';return toMin(t1)<toMin(t2)?[t1,t2]:['13:00','17:00'];}
+function inUnits(rows){const map=new Map();rows.forEach(r=>{const k=(r.cl||'')+':'+(r.container||r.id);if(!map.has(k))map.set(k,r);});return[...map.values()];}
+function chargeData(){
+  const[t1,t2]=chargeBounds(),m1=toMin(t1),m2=toMin(t2);
+  const outU=buildUnits(scopedRows()).map(u=>u.rep),inU=inUnits(scopedInRows());
+  const bucket=r=>{const m=toMin(r.rdv);return m==null?3:(m<m1?0:(m<m2?1:2));};
+  const P=[[0,0],[0,0],[0,0],[0,0]];   // [IN,OUT] x {avant t1, t1-t2, après t2, sans RDV}
+  inU.forEach(r=>P[bucket(r)][0]++);outU.forEach(r=>P[bucket(r)][1]++);
+  const hrs={};const addH=(r,i)=>{const m=toMin(r.rdv);if(m==null)return;const h=Math.floor(m/60);(hrs[h]=hrs[h]||[0,0])[i]++;};
+  inU.forEach(r=>addH(r,0));outU.forEach(r=>addH(r,1));
+  const tIn=inU.length,tOut=outU.length,tot=tIn+tOut;
+  return{t1,t2,P,hrs,tIn,tOut,tot};
+}
+function pctFR(n,d){return d?String((n*100/d).toFixed(1)).replace('.',',')+' %':'—';}
+function renderCharge(){
+  const c=chargeData();
+  $('#chT1').value=c.t1;$('#chT2').value=c.t2;
+  const rowT=i=>c.P[i][0]+c.P[i][1];
+  const cumIn=c.P[0][0],cumOut=c.P[0][1];
+  const cum2In=c.P[0][0]+c.P[1][0],cum2Out=c.P[0][1]+c.P[1][1];
+  const labels=['Avant '+c.t1,c.t1+' – '+c.t2,'Après '+c.t2,'Sans RDV'];
+  let tbl='<table class="dashtable"><tr><th>Période</th><th>IN</th><th>OUT</th><th>Total</th><th>% du jour</th></tr>';
+  for(let i=0;i<4;i++){if(i===3&&rowT(3)===0)continue;
+    tbl+='<tr><td>'+labels[i]+'</td><td>'+c.P[i][0]+'</td><td>'+c.P[i][1]+'</td><td><b>'+rowT(i)+'</b></td><td>'+pctFR(rowT(i),c.tot)+'</td></tr>';}
+  tbl+='<tr><td><b>Total</b></td><td><b>'+c.tIn+'</b></td><td><b>'+c.tOut+'</b></td><td><b>'+c.tot+'</b></td><td>100 %</td></tr></table>';
+  tbl+='<div class="chleg" style="margin-top:8px">Couverture cumulée — avant '+c.t1+' : IN '+pctFR(cumIn,c.tIn)+' · OUT '+pctFR(cumOut,c.tOut)+' · global <b>'+pctFR(rowT(0),c.tot)+'</b> — avant '+c.t2+' : global <b>'+pctFR(rowT(0)+rowT(1),c.tot)+'</b></div>';
+  // Verdict d'équilibre matin / après-midi (hors sans-RDV)
+  const planned=rowT(0)+rowT(1)+rowT(2);
+  let verdict='',cls='good';
+  if(planned){const pm=rowT(0)/planned*100;
+    if(pm>=45&&pm<=55)verdict='✅ Charge équilibrée : '+pctFR(rowT(0),planned)+' des camions avant '+c.t1+'.';
+    else{cls='warn';verdict=(pm>55?'⚠️ Charge concentrée le MATIN : ':'⚠️ Charge concentrée l\'APRÈS-MIDI : ')+pctFR(pm>55?rowT(0):planned-rowT(0),planned)+' des camions '+(pm>55?'avant ':'après ')+c.t1+(rowT(3)?' ('+rowT(3)+' sans RDV non comptés)':'')+'.';}}
+  else verdict='Aucun camion avec RDV sur cette journée.';
+  // Histogramme horaire
+  const hKeys=Object.keys(c.hrs).map(Number).sort((a,b)=>a-b);
+  let bars='',labs='';
+  if(hKeys.length){
+    const h0=hKeys[0],h1=hKeys[hKeys.length-1];
+    const max=Math.max(...hKeys.map(h=>c.hrs[h][0]+c.hrs[h][1]));
+    const m1h=Math.floor(toMin(c.t1)/60),m2h=Math.floor(toMin(c.t2)/60);
+    for(let h=h0;h<=h1;h++){const v=c.hrs[h]||[0,0];const sep=(h===m1h||h===m2h)?' sep':'';
+      bars+='<div class="chcol'+sep+'" title="'+String(h).padStart(2,'0')+'h — IN '+v[0]+' · OUT '+v[1]+'"><div class="in" style="height:'+Math.round(v[0]/max*84)+'px"></div><div class="out" style="height:'+Math.round(v[1]/max*84)+'px"></div></div>';
+      labs+='<span'+(sep?' class="sep"':'')+'>'+String(h).padStart(2,'0')+'</span>';}
+  }
+  $('#chargeWrap').innerHTML='<div class="chverdict '+cls+'">'+verdict+'</div>'+
+    '<div class="chgrid"><div>'+tbl+'</div>'+
+    '<div>'+(bars?'<div class="chbars">'+bars+'</div><div class="chlab">'+labs+'</div><div class="chleg">Camions par heure de RDV —<i style="background:var(--cours-bd)"></i>IN <i style="background:var(--attente-bd)"></i>OUT · pointillés = bornes</div>':'<div class="chleg">Pas de RDV horodatés à tracer.</div>')+'</div></div>';
+}
+function chargeSheet(){
+  const c=chargeData();const rowT=i=>c.P[i][0]+c.P[i][1];
+  const d=[['Équilibrage de la charge — '+fmtFR(state.currentDate)+(clientScope()?' — '+clientScope():' — tous clients'),'','',''],
+    ['Période','IN','OUT','Total','% du jour'],
+    ['Avant '+c.t1,c.P[0][0],c.P[0][1],rowT(0),c.tot?Math.round(rowT(0)*1000/c.tot)/10:''],
+    [c.t1+' – '+c.t2,c.P[1][0],c.P[1][1],rowT(1),c.tot?Math.round(rowT(1)*1000/c.tot)/10:''],
+    ['Après '+c.t2,c.P[2][0],c.P[2][1],rowT(2),c.tot?Math.round(rowT(2)*1000/c.tot)/10:''],
+    ['Sans RDV',c.P[3][0],c.P[3][1],rowT(3),c.tot?Math.round(rowT(3)*1000/c.tot)/10:''],
+    ['Total',c.tIn,c.tOut,c.tot,100],
+    [],['Heure','IN','OUT','Total']];
+  Object.keys(c.hrs).map(Number).sort((a,b)=>a-b).forEach(h=>d.push([String(h).padStart(2,'0')+'h',c.hrs[h][0],c.hrs[h][1],c.hrs[h][0]+c.hrs[h][1]]));
+  const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:16},{wch:7},{wch:7},{wch:8},{wch:10}];return ws;
+}
+$('#chT1').onchange=$('#chT2').onchange=()=>{state.settings.chargeT1=$('#chT1').value||'13:00';state.settings.chargeT2=$('#chT2').value||'17:00';save();renderCharge();};
+$('#dashBtn').onclick=()=>{renderDash();renderCharge();$('#dashModal').classList.add('open');};
 $('#tolInput').oninput=renderDash;$('#dashExport').onclick=exportDash;
 $('#importBtn').onclick=()=>{$('#importDate').value=state.currentDate;const isIn=state.flux==='in';
   $('#clientDatalist').innerHTML=knownClients().map(c=>'<option value="'+c.replace(/"/g,'&quot;')+'">').join('');
@@ -891,7 +1004,15 @@ $('#doImport').onclick=()=>{const dt=$('#importDate').value||state.currentDate;c
     importIn(recs,$('#replaceChk').checked,dt,cl);
   }else{
     let rec=window.__rec;if(!rec){if(!pasted||pasted.startsWith('✓')){alert('Colle des données ou charge un fichier.');return;}rec=parseTSV(pasted);}
-    const rows=mapRecords(rec);if(!rows.length){alert('Aucune ligne valide (en-têtes inclus ?).');return;}
+    const rows=mapRecords(rec);
+    if(!rows.length){
+      const hs=(window.__tsvHeaders||[]).map(h=>normKey(h)).join(' | ');
+      const hasDepHeader=/departure|départ/.test(hs);
+      alert(hasDepHeader?
+        'En-têtes reconnus mais aucune ligne exploitable dessous (colonne N° Departure vide ?).':
+        'La ligne d\'en-têtes est introuvable.\n\nCopie le tableau AVEC sa ligne de titres (il faut au minimum la colonne « N° Departure »), ou charge directement le fichier .xlsx via « Choisir un fichier » — ce mode accepte tous les formats.');
+      return;
+    }
     rows.forEach(r=>r.cl=cl);
     seedCrMap(rows);state.currentDate=dt;if(fb.enabled)subData();const d=(state.days[dt]=state.days[dt]||{rows:[],updated:null});d.rows=mergeRows(d.rows,rows,$('#replaceChk').checked,cl);applyCrMap();d.updated=new Date().toISOString();
   }
@@ -1023,7 +1144,7 @@ function buildInRows(records,cl){cl=cl||'';const map=new Map();records.forEach(r
 function mergeInRows(target,incoming,replace,cl){cl=cl||'';const others=target.filter(r=>(r.cl||'')!==cl);const mine=target.filter(r=>(r.cl||'')===cl);if(replace)return others.concat(incoming);const out=mine.map(r=>Object.assign({},r));const m=new Map();out.forEach(r=>m.set(inKey(r),r));incoming.forEach(r=>{const k=inKey(r);if(m.has(k))m.get(k).qty=r.qty;else{out.push(r);m.set(k,r);}});return others.concat(out);}
 const IN_FMT11=['Delivery Date','Time of delivery','Plant','LGORT','MESSAGE','Supplier','Material','Quantity','Container No.','SD Document','Reference'];
 const IN_FMT10=['Delivery Date','Time of delivery','LGORT','MESSAGE','Material','Quantity','Container No.','SD Document','Seal No.','Reference'];
-function parseInPaste(text){const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='');if(!lines.length)return[];const looksHeader=/time of delivery|container/i.test(lines[0]);if(looksHeader){const h=lines[0].split('\t').map(s=>s.trim());return lines.slice(1).map(l=>{const c=l.split('\t');const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}const H=lines[0].split('\t').length>=11?IN_FMT11:IN_FMT10;return lines.map(l=>{const c=l.split('\t');const o={};H.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
+function parseInPaste(text){const lines=splitLogicalRows(text);if(!lines.length)return[];const first=lines[0].join('\t');const looksHeader=/time of delivery|container/i.test(first);if(looksHeader){const h=lines[0].map(s=>s.trim());return lines.slice(1).map(c=>{const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}const H=lines[0].length>=11?IN_FMT11:IN_FMT10;return lines.map(c=>{const o={};H.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
 function importIn(records,replace,dt,cl){state.currentDate=dt;if(fb.enabled)subData();const d=dayData();const rows=buildInRows(records,cl);d.inRows=mergeInRows(d.inRows||[],rows,replace,cl);d.updated=new Date().toISOString();}
 function propagateIn(row){if(!row.groupage)return;dayData().inRows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
 function renderIn(isClient){
@@ -1131,6 +1252,7 @@ function exportInDash(){
   const byC={};units.forEach(u=>{const t=u.rep.container||'(sans)';(byC[t]=byC[t]||[]).push(u);});
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(bySlot).sort()),'Par creneau');
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(byC).sort()),'Par conteneur');
+  XLSX.utils.book_append_sheet(wb,chargeSheet(),'Charge');
   XLSX.writeFile(wb,'Dashboard_reception_IN_'+state.currentDate+'.xlsx');
 }
 /* ===================== VUE COMPILÉE IN / OUT ===================== */
