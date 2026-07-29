@@ -108,6 +108,7 @@
   .pill.retann{background:#f3eafc;color:#5e2f77;border:1px solid #8e44ad}
   .statesel.retann{background:#f3eafc;border-color:#8e44ad}
   .statesel.retard{background:#fdecea;border-color:#c0392b}
+  .ro.foulee{color:#c0392b;font-weight:900}
 
   .ro{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
   td.mirror{opacity:.72;font-style:italic}
@@ -124,6 +125,10 @@
   .cmpcell.termine{background:var(--termine-bg)}
   .cmpcell.has{outline:1px solid var(--line);cursor:pointer}
   .cmpcell.has:hover{filter:brightness(.97);outline:2px solid var(--cours-bd)}
+  .cmpcell.caplim{border-bottom:3px solid #c0392b}
+  td.cmpslot.caplim{border-bottom:3px solid #c0392b}
+  .cmpcell.capover{background-image:repeating-linear-gradient(45deg,rgba(192,57,43,.06) 0 6px,rgba(192,57,43,.13) 6px 12px)}
+  .cmpcell.has.capover{outline:2px solid #c0392b}
   .clcell{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);white-space:nowrap}
   .warnicon{font-size:12px}
   .cmtdot{font-size:11px;opacity:.85}
@@ -154,6 +159,23 @@
   .chlab span.sep{border-left:2px solid transparent;margin-left:4px;padding-left:4px}
   .chleg{font-size:11px;color:var(--muted);margin-top:4px}
   .chleg i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
+  .captable{border-collapse:collapse;font-size:12px}
+  .captable th,.captable td{border:1px solid var(--line);padding:4px 6px;text-align:center}
+  .captable input{width:44px;text-align:center;border:none;font-weight:700;font-size:12.5px}
+  .capgrid{border-collapse:collapse;width:100%;font-size:12px}
+  .capgrid th,.capgrid td{border:1px solid var(--line);padding:5px 7px;text-align:center;font-variant-numeric:tabular-nums}
+  .capgrid th{background:var(--panel);font-size:11px}
+  .capgrid td.slot{font-weight:800;text-align:left}
+  .occbar{position:relative;background:#eef1f4;border-radius:5px;height:16px;min-width:76px;overflow:hidden}
+  .occbar>i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+  .occbar>b{position:relative;font-size:10.5px;line-height:16px}
+  .occ-ok>i{background:#9fd3a8}.occ-warn>i{background:#f2c46d}.occ-full>i{background:#ec8b8b}
+  .capverdict{margin:8px 0 2px;padding:8px 11px;border-radius:9px;font-weight:700;font-size:12.5px;border:1.5px solid var(--line);background:var(--panel)}
+  .trgrid{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px}
+  .trgrid th,.trgrid td{border:1px solid var(--line);padding:5px 7px;text-align:center;font-variant-numeric:tabular-nums}
+  .trgrid th{background:var(--panel);font-size:11px}
+  .trgrid td.d{font-weight:800;text-align:left;white-space:nowrap}
+  .trpct{font-weight:800}.trpct.g{color:#0f8a4d}.trpct.w{color:#b97f10}.trpct.b{color:#c0392b}
   .rdvmod{font-size:11px;margin-left:4px;cursor:help}
   #planHost{display:none;padding:4px 2px 30px}
   .planbar{display:flex;align-items:center;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
@@ -290,7 +312,7 @@
     <button class="btn" id="slotBtn" title="Paramètres administrateur (quais, slots)">⚙️ Paramètres</button>
     <button class="btn" id="printBtn">🖨</button>
     <button class="btn" id="scanBtn">📷 Scanner</button>
-    <button class="btn" id="labelsBtn">🏷️ Étiquettes</button>
+    <button class="btn" id="labelsBtn">🏷️ Étiquettes</button><button class="btn" id="pochBtn">📄 Pochettes</button>
     <button class="btn" id="usersBtn">👤 Utilisateurs</button>
     <button class="btn" id="syncBtn">🔗 Sync</button>
   </div>
@@ -373,6 +395,8 @@
   <div class="scroll"><table class="dashtable" id="dashByType"></table></div>
   <div class="dashsection" id="dashSec2">Par transporteur</div>
   <div class="scroll"><table class="dashtable" id="dashByTransp"></table></div>
+  <div class="dashsection">📐 Capacité &amp; occupation par créneau</div>
+  <div id="capWrap"></div>
   <div class="dashsection" style="display:flex;align-items:center;gap:10px">⚖️ Équilibrage de la charge (IN + OUT)
     <span class="spacer" style="flex:1"></span>
     <label style="font-size:11.5px;color:var(--muted)">Bornes</label>
@@ -380,6 +404,12 @@
     <input type="time" id="chT2" style="width:92px">
   </div>
   <div id="chargeWrap"></div>
+  <div class="dashsection" style="display:flex;align-items:center;gap:10px">📈 Tendances multi-jours
+    <span class="spacer" style="flex:1"></span>
+    <select id="trPeriod" style="width:auto"><option value="7">7 jours</option><option value="14">14 jours</option></select>
+    <button class="btn" id="trGo">Analyser</button>
+  </div>
+  <div id="trWrap"><div class="chleg">Clique « Analyser » pour charger les journées précédentes et dégager les tendances (volumes, ponctualité, saturation, équilibrage).</div></div>
   <div class="modal-actions"><button class="btn" id="dashExport">⬇ Exporter le dashboard</button></div>
 </div></div>
 
@@ -414,11 +444,27 @@
   <input id="quaisInput" placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10" style="width:100%;margin-bottom:12px">
   <div class="dashsection">Plan de l'entrepôt</div>
   <p>Le plan macro Lagny est <b>embarqué</b> dans l'outil (onglet 🏭 Plan). Les <b>noms des quais, codes planning et textes</b> se modifient directement sur le plan via le bouton ✏️ Modifier (admin). Pour un nouveau dessin du plan, fournis le fichier Excel mis à jour.</p>
+  <div class="dashsection">Capacité par créneau (slots / heure, 6h → 18h)</div>
+  <p>Nombre de camions absorbables par créneau d'une heure, par flux — repris de ton planning capacitaire (VD/DA). Sert à l'analyse « Capacité &amp; occupation » du dashboard 📊.</p>
+  <div style="overflow:auto;margin-bottom:12px"><table class="captable" id="capTable"></table></div>
   <div class="dashsection">Slots de la vue compilée</div>
   <p>Nombre de positions affichées par créneau. La grille s'étend automatiquement si un créneau dépasse ce nombre.</p>
   <div class="row2" style="margin-bottom:10px">
     <div class="field"><label>Slots Réception (IN)</label><input type="number" id="slotsInInput" min="1" max="30" style="width:90px"></div>
     <div class="field"><label>Slots Expédition (OUT)</label><input type="number" id="slotsOutInput" min="1" max="30" style="width:90px"></div>
+  </div>
+  <div class="dashsection">📄 Gabarits de pochettes (par client)</div>
+  <p>Exporte le gabarit en Excel, ajuste les textes / largeurs / hauteurs / styles, puis réimporte-le <b>pour le client choisi</b>. Chaque client peut avoir ses propres pochettes. ⚠️ Conserve la structure (numéros de lignes) : seuls textes, tailles et styles sont libres. La feuille <b>STYLES</b> pilote gras, polices, bordures et fonds.</p>
+  <div class="row2" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">
+    <input id="ptClient" placeholder="Client (vide = standard tous clients)" list="clientsDL" style="width:220px">
+    <select id="ptFlux" style="width:auto"><option value="out">📤 Expédition</option><option value="in">📥 Réception</option></select>
+    <span class="hint" id="ptStatus" style="align-self:center"></span>
+  </div>
+  <div class="row2" style="flex-wrap:wrap;gap:8px;margin-bottom:6px">
+    <button class="btn" id="ptExp">⬇ Exporter le gabarit (Excel)</button>
+    <button class="btn" id="ptImpBtn">⬆ Importer un gabarit</button>
+    <input type="file" id="ptImpFile" accept=".xlsx,.xlsm" style="display:none">
+    <button class="btn danger" id="ptReset">↺ Rétablir le standard</button>
   </div>
   <div class="modal-actions"><button class="btn ghost" data-close>Fermer</button><button class="btn primary" id="slotSave">Enregistrer</button></div>
 </div></div>
@@ -433,7 +479,7 @@
     <div class="field"><label id="uChargLbl">Heure charg.</label><div class="stamp"><input id="uCharg" placeholder="--:--" style="width:78px"><button data-ust="uCharg" title="Tamponner l'heure actuelle">⏱</button></div></div>
     <div class="field"><label>Heure départ</label><div class="stamp"><input id="uDep" placeholder="--:--" style="width:78px"><button data-ust="uDep" title="Tamponner l'heure actuelle">⏱</button></div></div>
   </div>
-  <div class="modal-actions" id="unitOpActions" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" id="uLabel" style="margin-right:auto">🏷️ Imprimer l'étiquette</button><button class="btn" id="uLate" style="display:none;border-color:#8e44ad">📞 Retard annoncé</button><button class="btn primary" id="uSave">Enregistrer les heures</button></div>
+  <div class="modal-actions" id="unitOpActions" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" id="uLabel" style="margin-right:auto">🏷️ Étiquette</button><button class="btn" id="uPoch">📄 Pochette</button><button class="btn" id="uLate" style="display:none;border-color:#8e44ad">📞 Retard annoncé</button><button class="btn primary" id="uSave">Enregistrer les heures</button></div>
   <div class="dashsection">Commentaires (historique par RDV)</div>
   <div class="userlist" id="uCmtList" style="max-height:34vh;overflow:auto"></div>
   <div class="row2" id="uCmtAddRow" style="margin-top:8px">
@@ -530,7 +576,7 @@
 <script>
 const LS='gxo_planning_inout_v2', LS_FB='gxo_planning_fb_v2', LS_SESS='gxo_planning_sess_v2';
 const STATUSES={nonpresente:'Non présenté',retard:'⏰ Retard',retann:'📞 Retard annoncé',attente:'En attente',cours:'En cours',termine:'Terminé'};
-const APP_VERSION='v2026.07.23-10';
+const APP_VERSION='v2026.07.29-21';
 const GRAIL=['#0b4f8a','#7a3fae','#0f8a6e','#b8632a','#a8336b','#3a6ea5','#7a8a0f'];
 /* Base CR client préchargée (code destinataire colonne L -> CR). Source: extraction Données de Base BP destinataire. */
 const DEFAULT_CRMAP={"1917369":"PREP PAL","1968911":"PREP PAL","2059448":"PREP PAL dg 05/10/2018","2088369":"PALETTES CERCLEES ET FILMEES","3300806":"PALETTES CERCLEES ET FILMEES","3385691":"REFILMER PAL 80*120","3451403":"PREP PALETTES","3458077":"PALETTES CERCLEES ET FILMEES","3478522":"PREP PAL","4313247":"1 COLIS 1 SUPPORT JUNG +surcollage","6053137":"PALETTE CERCLEES ET FILMEES","6212256":"PALETTES CERCLEES ET FILMEES","6280792":"PREP PAL","7394758":"PREP PALETTES","7398006":"SUR PALETTES / FILMAGE MEME SI CERCLAGE","9223778":"PREP PAL + MONO REF","9223779":"PREP PALETTE + MONO REF","9223811":"SUR PALETTES + MONO REF","9223812":"PREP PALETTES + MONO REF","9338220":"PALETTES CERCLEES ET FILMEES","0S413":"PHOTO DEBUT MILLIEU FIN","0001410228":"1.80 M MAXI","0001438542":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0001454250":"PREP  PAL","0001460204":"PREP PAL","0001488290":"PREPARATION SUR PALETTE SK LE 040226","000149449":"PALETTE MONO REF 1M80 MAXI","0001494494":"palette mono ref hauteur max 1m70 sk le 211217","0001495706":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001495743":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001496150":"MONO REF sk le 19/10/17 suite mail TC — PREPARATION SUR PALETTE SK LE 040226","0001892895":"PREPARATION SUR PALETTE SK LE 040226","0001900673":"PREP PAL DG 25102019","0001968911":"PREPARATION SUR PALETTE SK LE 040226","0001969835":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0001982266":"chargement RAIL/ROUTE","0002012285":"PREPARATION SUR PALETTE SK LE 040226","0002012957":"MONO REF 1m80 MAXI","0002013994":"HAUTEUR 1M80 A RESPECTER POUR TOUTES LES REFS SAUF POUR LES 55' — (32\"/43\"/58\"/60\"/65\"/70\"/75\")-CHARGEMENT EN FOULEE","0002014466":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0002021829":"PREP PAL DG251019","0002023193":"HAUTEUR MAX 1,80m SAUF TELE / 1 REF PAR PALETTE — MONO REF","0002024058":"Palette mono référence - Hauteur maximum 1,60m — sur 80*120 ou 100*120 mail taj 161018","0002025772":"les 43' sont imperativement sur 2 couches","0002059448":"PREPARATION SUR PALETTE SK LE 040226","0002074403":"Hauteur maximum 1.80m","0002074404":"Hauteur maximum 1.80m","0002074447":"Hauteur maximum 2,20m","0002079873":"CHARGEMENT EN FOULEE","0002081082":"Palette mono référence - Hauteur maximum 2m","0002081932":"Hauteur maximum 1,80m","0002082543":"Palette mono référence - Hauteur maximum 1,80m","0002082724":"Hauteur maximum 1,80m","0002083548":"Lettre de voiture au BL","0002084979":"Hauteur maximum 1,30m","0002091143":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0002091488":"Palette mono référence","0002247972":"HAUTEUR MAX 1M80 TAJ LE 250718 sur AUDIO VIDEO","0002261256":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE","0002261259":"FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0002261280":"sur palettes 1.80M maxi MONO REF palettes cerclée sont à FILMER — DG 14/11/18 — 1M80 MAXI SUR LES BARRES DE SON-CHARGEMENT EN FOULEE","0002261289":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE — RAJOUTER INTERCALAIRE POUR SEPARER LES REFS DDE TAJ DU 160523","0002261332":"mono ref pour le brun sk le 180920","0002332826":"PREPARATION SUR PALETTE SK LE 040226","0002333762":"MONO REF","0002334922":"PREPARATION SUR PALETTE SK LE 040226 — Hauteur 2m20 max suite mail justin 130819","0002337062":"palette mono ref hauteur 2m30 maxi mail justin 30/11/18","0002337065":"hauteur 2m20 max suite demande justin 130819","0002353770":"PREPARATION SUR PALETTE SK LE 040226","0002354199":"CHARGEMENT EN FOULEE","0002412403":"Lettre de voiture au BL","0002413184":"PREPARATION SUR PALETTE 1.80M MAX SK LE 040226","0002437040":"HAUTEUR PALETTE 2M MAX suite mail justin 180122","0002445640":"MONO REF","0002472625":"MONO REF dg 2020","0002474775":"2M MAXI Mno Ref DG 06082020","0002493367":"CHARGEMENT EN FOULEE","0003145385":"hauteur max 1m60","0003149230":"1.80 MAXI","0003158815":"CHARGEMENT EN FOULEE","0003161334":"Rework HW-Q600B/ZF","0003168012":"hauteur 1m40 max suite mail justin","0003181180":"PALETTE MONO Ref","0003183556":"MONO REF 2m30 maxi","0003184595":"Palette mono ref — Lettre de voiture au BL","0003189265":"hauteur max 2m10 mail justin du 301020","0003192301":"MPS LOGYSTECH = PREPARATION SUR 2 COUCHES UNIQUEMENT 2M10 MAX — MECALOG = CR 80*120","0003257802":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet — lettre de voiture au BL","0003268316":"MONO REF  1m80  MAXI","0003269331":"sur palettes","0003273142":"MONO  REF 1m80 MAXI","0003273148":"MONO REF  1m80 MAXI","0003286549":"brun : CR 1m80 barre de son et tv inferieur à 55' — pas de cr tv sup à 55'","0003286552":"pas de cr pour les palettes sup à 55' sk le 091019","0003286559":"1M80 MAXI suite mail justin du 04/06/20","0003288855":"Palette mono référence - Hauteur maximum 2m","0003289192":"SUR PALETTES","0003317770":"Rework HW-Q600B/ZF-chargement RAIL/ROUTE","0003324139":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003327166":"1M80 MAXI suite mail justin du 23/09/20 — DOUBLE STACK POSSIBLE MAIL TAJ 26/03/24","0003373392":"Hauteur maximum 1,60m mono reference","0003385684":"PREPARATION SUR 80*120 MINIMUM  1 REFERENCE PAR PALETTE","0003385688":"Palette mono référence - Maximum 1 référence par palette","0003405142":"Palette mono référence - Préparation sur palette 80*120 sauf TV — hauteur 1m40 max suite mail justin","0003406030":"FRIGOS SUR PALETTES","0003406683":"PREPARATION SUR PALETTE SK LE 040226","0003418147":"Hauteur maximum 1,80m","0003424492":"PREP PAL DG251019","0003436533":"PREPARATION SUR PALETTE SK LE 040226","0003436542":"PREPARATION SUR PALETTE SK LE 040226","0003436544":"PREPARATION SUR PALETTE SK LE 040226","0003437603":"chargement RAIL/ROUTE","0003442483":"SUR PALETTES ET MONO REF","0003451403":"PREPARATION SUR PALETTE SK LE 040226","0003467687":"PREP SUR PAL","0003478522":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003863352":"PREPARATION SUR PALETTE SK LE 040226","0003903831":"hauteur max 1m80 suite mail justin 140521-CHARGEMENT EN FOULEE","0003991973":"PREPARATION SUR PALETTE SK LE 040226 — max 2M","0003993920":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0004172825":"préparation de produits sur palette pour les produits blancs GEM. — CHARGEMENT EN FOULEE","0004198369":"prep 1m60 suite mail tajamal du 091221","0004221729":"Rework HW-Q600B/ZF","0004244176":"Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0004244177":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet","0004248475":"Hauteur maximum 1,80m","0004256586":"Hauteur maximum 1,80m","0004257496":"Hauteur maxi palette 160cm  - mono reference - Mettre des CORNIERES — IMPERATIF SUR SUPPORT DE PROFONDEUR 120 CM MINIMUM","0004262634":"CHARGEMENT EN FOULEE","0004271167":"Hauteur maximum 1,80m","0004273238":"Hauteur maximum 1,40m","0004275446":"Hauteur maximum 1,80m","0004276019":"hauteur maximum 1,8m","0004292453":"SUR PALETTES MONO REF","0004304715":"Picking 1 colis 1 support 1 palette — *** ATTENTION  ETIQUETTE SPECIFIQUE A COLLER VOIR ADMIN****","0004308554":"Hauteur maximum 1,60m","0004313247":"JUNG 1 colis 1 support 1 palette DG — *** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004313601":"Hauteur maximum 1,60m","0004323104":"*** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004325267":"MONO REF  1M80 MAXI","0004325273":"MONO  REF 1M80 MAXI","0004325317":"MONO REF 1m80 MAXI","0004325327":"MONO REF 1m80 MAXI","0004325329":"MONO REF 1m80 MAXI","0004356173":"Hauteur maximum 1,80m","0004358350":"MONO REF 1m80 maxi","0004358369":"MONO REF  1m80 MAXI","0004358370":"MONO  REF 1m80 MAXI","0004358376":"MONO REF 1.80 MAXI","0004376542":"PREPARATION SUR PALETTE SK LE 040226","0004413893":"PREPARATION SUR PALETTE SK  LE 040226","0004771643":"PREPARATION SUR PALETTE SK LE 040226","0004795701":"CHARGEMENT EN FOULEE","0004967101":"PREPARATION SUR PALETTE SK LE 040226-chargement RAIL/ROUTE","0005336157":"PREP PAL","0005379038":"PREP PAL","0005384518":"SUR PALETTE 80*120 DDE JPJ LE 22/12/14 IMPERATIF","0005968566":"1M80 MAX METTRE DES INTERCALAIRES","0005968590":"1M80 MAX METTRE DES INTERCALAIRES SK LE 120624","0005983586":"1M70 MAIL TAJAMAL 17/07/24 CR","0005983620":"1M80 MAIL TAJAMAL 17/07/24 CR — DOUBLE STACK 65' et 70'","0005984458":"CHARGEMENT EN FOULEE","0006020280":"Palette mono référence - Hauteur maximum 2,20m — Lettre de voiture au BL","0006026492":"Palette mono référence - Hauteur maximum 1,80m SAUF TV — FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0006032397":"PREP PAL","0006040923":"Hauteur maximum 2m","0006042187":"Hauteur maximum 1,80m","0006053137":"Hauteur maximum 1,90m","0006056167":"Palette mono réf pour la prep brun /Hauteur maximum 1,80m sauf tele — MONO REF BLANC","0006066777":"PaL mono réf- Hauteur max 2m CORNIERES SUR TOUTES LES PAL IMPERATIF","0006076511":"Palette mono référence - Hauteur maximum 1,60m","0006084376":"* ATTENTION VOIR SOPHIE POUR LE PLAN ORTEC *CHARGEMENT EN FOULEE — hauteur 2m10 suite mail justin","0006084844":"CHARGEMENT EN FOULEE","0006085133":"MONO REF LORS DE LA PREP ET DE L EXPE","0006210950":"HAUTEUR MAX 1.80m sur 80*120 ou 100*120 si le produit le permet","0006237030":"Hauteur maximum 1,80m","0006255221":"HAUTEUR MAXI 2M00 / MONO REFERENCE /AUDIO/ VIDEO SUR 80*120 OU 100*120","0006280792":"PREPARATION SUR PALETTE SK LE 040226","0006286233":"Palette mono référence - Hauteur maximum 1,80m — Lettre de voiture au BL","0006286234":"Palette mono référence - Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0006286798":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006293456":"Hauteur maximum 1,80m mono reference- Préparation sur palette 80*120","0006295902":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006295903":"MONO REF  1m80 MAXI","0006299097":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120","0006448645":"1M80 MAX POUR LES PALETTES PICKING — DOUBLE STACK POUR  65 70 75\"","0006476525":"CHARGEMENT EN FOULEE","0006498863":"PREPARATION SUR PALETTE SK LE 040226","0007083510":"chargement RAIL/ROUTE","0007084775":"CHARGEMENT EN FOULEE","0007090098":"1M85 MAX SK LE 190326  DOUBLE STACK POUR  65 ET 70 POUCES — 1 ref par palette","0007330753":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — lettre de voiture au BL-CHARGEMENT EN FOULEE — !! double stacking 55'' 65'' 70''!!","0007372949":"SUR PALETTE DG","0007394758":"PREPARATIN SUR PALETTE SK LE 040226","0007398006":"PREPARATION SUR PALETTE SK LE 040226 — CHARGEMENT EN FOULEE","0007399103":"chargement RAIL/ROUTE","0007938006":"SUR PALETTE","0008321697":"Lettre de voiture au BL","0008321832":"PREPARATION SUR PALETTE SK LE 040226","0008372072":"Palette 2m20 max demande justin 130819","0008378983":"PREPARATION SUR PALETTE SK LE 040226","0008385062":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — Lettre de voiture au BL — DOUBLE STACK SUR 55 65 70 75\"","0009223778":"IMPERATIF SUR 80*120 SINON PAS DE DECHARGEMENT / 1 REF PAR PALETTE — HAUTEUR MAX 1M80 — PREP PAL dg 05/10/2018","0009223779":"HAUTEYR MAX 1M80 / PALETTE 80*120 IMPERATIF / PAL MONO REFERENCE — HAUTEUR MAX 1M80 / PAL MONO REFERENCE / 80*120 IMPERATIF — SUR PALETTES dg 05/10/2018","0009223811":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/2018","0009223812":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/18","0009235196":"Palette Mono ref / hauteur 2m maxi-CHARGEMENT EN FOULEE — pas d etetage sur ref sup ou egale à 55'","0009338220":"hauteur max 2m suite mail justin 130819-CHARGEMENT EN FOULEE — MO A REPALETISER SUR 80*120 ET CERCLAGE SK LE 241125","0009398792":"MONO REFERENCE / MAX 1M80"};
@@ -586,6 +632,9 @@ function railColor(code){let s=0;for(const c of code)s+=c.charCodeAt(0);return G
 function autoStatus(r){if(r.depart)return'termine';if(r.charg)return'cours';if(r.arrivee||r.quai)return'attente';if(r.statut==='retann')return'retann';return'nonpresente';}
 function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 /* Statut effectif affiché : « Retard » automatique quand le RDV du JOUR est dépassé de 30 min sans arrivée */
+function livTxt(r){if(!r.livJ&&!r.livH)return'';const d=r.livJ?(r.livJ.slice(8,10)+'/'+r.livJ.slice(5,7)):'';return(d+' '+(r.livH||'')).trim();}
+function isFouleeLiv(r){return !!r.livJ&&r.livJ===state.currentDate;}
+function livCell(r){const t=livTxt(r);return'<td><span class="ro '+(t?'':'empty')+(isFouleeLiv(r)?' foulee':'')+'"'+(isFouleeLiv(r)?' title="Livraison en foulée : chargée et livrée le même jour"':'')+'>'+(isFouleeLiv(r)?'🔥 ':'')+(t||'\u2014')+'</span></td>';}
 function effStatus(r){
   if(r.statut==='nonpresente'&&state.currentDate===todayISO()){
     const m=toMin(r.rdv);
@@ -605,7 +654,7 @@ function parseJour(v){v=String(v||'').trim();if(!v)return'';
   let dd,mm;if(a>12){dd=a;mm=b;}else if(b>12){mm=a;dd=b;}else{mm=a;dd=b;} // ambigu : format US (SheetJS) par défaut
   return y+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0');}
 function cleanTime(v){if(!v)return'';v=String(v).trim();if(/^0?\.\d+$/.test(v)){const f=parseFloat(v),mins=Math.round(f*1440);return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}const m=v.match(/(\d{1,2})[:hH](\d{2})/);if(!m)return v;let h=+m[1];if(/p\.?\s?m/i.test(v)&&h<12)h+=12;if(/a\.?\s?m/i.test(v)&&h===12)h=0;return String(h).padStart(2,'0')+':'+m[2];}
-function buildRow(o){return{id:uid(),cl:o.cl||'',departure:o.departure||'',rdv:o.rdv||'',rdv0:o.rdv||'',transporteur:o.transporteur||'',groupage:o.groupage||'',destinataire:o.destinataire||'',destcode:o.destcode||'',cr:o.cr||'',quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'};}
+function buildRow(o){return{id:uid(),cl:o.cl||'',departure:o.departure||'',rdv:o.rdv||'',rdv0:o.rdv||'',transporteur:o.transporteur||'',groupage:o.groupage||'',destinataire:o.destinataire||'',destcode:o.destcode||'',cr:o.cr||'',ref:o.ref||'',pal:o.pal||'',livJ:o.livJ||'',livH:o.livH||'',poids:o.poids||'',vol:o.vol||'',adr:o.adr||'',cp:o.cp||'',ville:o.ville||'',chauffeur:o.chauffeur||'',immT:o.immT||'',immR:o.immR||'',plomb:o.plomb||'',typeVeh:o.typeVeh||'',quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'};}
 /* ---- Multiclient ----
    Chaque ligne IN/OUT porte un client (cl), affecté à l'import.
    Comptes Client : cloisonnés sur leur client. Exploitation/Admin : tout voient + filtre. */
@@ -617,7 +666,7 @@ function scopedInRows(){const sc=clientScope();return sc?dayData().inRows.filter
 /* CR client = paramétré par code destinataire (colonne L). Le mapping est la source de vérité. */
 function seedCrMap(rows){rows.forEach(r=>{if(r.destcode&&r.cr&&state.crMap[r.destcode]===undefined)state.crMap[r.destcode]=r.cr;});}
 function applyCrMap(){Object.values(state.days).forEach(d=>d.rows.forEach(r=>{if(r.destcode&&state.crMap[r.destcode]!==undefined)r.cr=state.crMap[r.destcode];}));}
-function mapRecords(records){return records.map(r=>{const g={};for(const k in r)g[normKey(k)]=r[k];const pick=function(){for(var i=0;i<arguments.length;i++){var k=arguments[i];if(g[k]!==undefined&&String(g[k]).trim()!=='')return String(g[k]).trim();}return'';};const row=buildRow({departure:pick('n departure','no departure','departure','depart'),rdv:cleanTime(pick('heure de chargement','rdv','heure charg','heure chargement')),transporteur:pick('transporteur l2 facturation','transporteur','transporteur l2'),groupage:pick('group','groupage','groupe'),destinataire:pick('destinataire description','destinataire'),destcode:pick('destinataire code','code destinataire','destcode'),cr:pick('cr','cr client')});row._jour=parseJour(pick('jour de chargement','date de chargement'));return row;}).filter(r=>r.departure);}
+function mapRecords(records){return records.map(r=>{const g={};for(const k in r)g[normKey(k)]=r[k];const pick=function(){for(var i=0;i<arguments.length;i++){var k=arguments[i];if(g[k]!==undefined&&String(g[k]).trim()!=='')return String(g[k]).trim();}return'';};const row=buildRow({departure:pick('n departure','no departure','departure','depart'),rdv:cleanTime(pick('heure de chargement','rdv','heure charg','heure chargement')),transporteur:pick('transporteur l2 facturation','transporteur','transporteur l2'),groupage:pick('group','groupage','groupe'),destinataire:pick('destinataire description','destinataire'),destcode:pick('destinataire code','code destinataire','destcode'),cr:pick('cr','cr client'),livJ:parseJour(pick('jour de livraison')),livH:cleanTime(pick('heure de livraison')),ref:pick('ref livraison','n de commande','reference'),pal:pick('nbre de al','nbre de pal','palettes'),poids:pick('poids'),vol:pick('volume'),adr:pick('destinataire adresse'),cp:pick('destinataire code postal'),ville:pick('destinataire ville'),chauffeur:pick('nom et prenom du chauffeur'),immT:pick('n d immat tracteur'),immR:pick('n d immat remorque'),plomb:pick('plomb'),typeVeh:pick('type de vehicule')});row._jour=parseJour(pick('jour de chargement','date de chargement'));return row;}).filter(r=>r.departure);}
 /* Découpe un collage en LIGNES LOGIQUES : une cellule Excel/TMS contenant des retours à la ligne
    est copiée entre guillemets ("…\n…") — on ne coupe la ligne que hors guillemets. */
 function splitLogicalRows(text){
@@ -657,7 +706,7 @@ function mergeRows(target,incoming,replace,cl){
 function buildUnits(rows){const map=new Map();rows.forEach(r=>{const k=r.groupage?('G:'+(r.cl||'')+':'+r.groupage):('R:'+r.id);(map.get(k)||map.set(k,[]).get(k)).push(r);});return[...map.values()].map(g=>({rows:g,rep:g[0]}));}
 function kpiFor(units,tol){let total=units.length,pres=0,done=0,aOn=0,aN=0,cOn=0,cN=0,dS=0,dN=0;units.forEach(u=>{const r=u.rep,rdv=toMin(r.rdv);if(r.arrivee||r.quai||r.charg||r.depart)pres++;if(r.depart)done++;const a=toMin(r.arrivee);if(rdv!=null&&a!=null){aN++;if(a<=rdv+tol)aOn++;}const c=toMin(r.charg);if(rdv!=null&&c!=null){cN++;if(c<=rdv+tol)cOn++;dS+=c-rdv;dN++;}});return{total,pres,done,presRate:total?Math.round(pres/total*100):0,arrRate:aN?Math.round(aOn/aN*100):null,chgRate:cN?Math.round(cOn/cN*100):null,avgDelay:dN?Math.round(dS/dN):null};}
 
-const COLS=['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','QUAI','H. ARRIVÉE','H. CHARG.','H. DÉPART','STATUT'];
+const COLS=['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','LIVRAISON','QUAI','H. ARRIVÉE','H. CHARG.','H. DÉPART','STATUT'];
 function visibleRows(){const q=($('#searchInput').value||'').toLowerCase(),tf=$('#transpFilter').value;
   return scopedRows().filter(r=>{if(activeFilter&&r.statut!==activeFilter)return false;if(tf&&r.transporteur!==tf)return false;if(q){const b=(r.departure+' '+(r.rdv||'')+' '+r.transporteur+' '+r.destinataire+' '+r.groupage+' '+r.cr+' '+(r.cl||'')).toLowerCase();if(!b.includes(q))return false;}return true;})
   .sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')||(a.groupage||'zzzz').localeCompare(b.groupage||'zzzz')||a.departure.localeCompare(b.departure));}
@@ -690,6 +739,7 @@ function render(){
   $('#exportBtn').style.display='';$('#printBtn').style.display='';
   $('#scanBtn').style.display=isClient?'none':'';
   $('#labelsBtn').style.display=(!isClient&&!isCmp&&!isPlan)?'':'none';
+  $('#pochBtn').style.display=(!isClient&&!isCmp&&!isPlan)?'':'none';
   // Filtre client : exploitation/admin uniquement (les comptes Client sont cloisonnés d'office)
   const cf=$('#clientFilter');
   $('#clientFilterField').style.display=sessionClient()?'none':'';
@@ -743,7 +793,7 @@ function render(){
         '<td class="statecell">'+r.departure+badge+cmtBtn+'</td>'+
         '<td class="rdv">'+(r.rdv||'—')+(r.rdv0&&r.rdv0!==r.rdv?'<span class="rdvmod" title="RDV d\'origine : '+r.rdv0+'">🕐</span>':'')+'</td><td>'+(r.transporteur||'—')+'</td>'+
         '<td class="grpcode">'+(r.groupage||'')+'</td><td class="dest">'+(r.destinataire||'—')+'</td>'+
-        '<td class="cr">'+warn+'<input value="'+(r.cr||'').replace(/"/g,'&quot;')+'" data-f="cr" style="width:184px"></td>';
+        '<td class="cr">'+warn+'<input value="'+(r.cr||'').replace(/"/g,'&quot;')+'" data-f="cr" style="width:184px"></td>'+livCell(r);
       let ops;
       if(opEditable){
         ops=
@@ -786,6 +836,7 @@ function render(){
     '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
     '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Terminé <b>'+c.termine+'</b></div>';
 {const _rt=scopedRows().filter(r=>{const e=effStatus(r);return e==='retard'||e==='retann';}).length;if(_rt)$('#stats').innerHTML+='<div class="stat" style="background:#fdecea;border-color:#c0392b"><span class="dot" style="background:#c0392b"></span>Retard <b>'+_rt+'</b></div>';}
+{const _fl=scopedRows().filter(isFouleeLiv).length;if(_fl)$('#stats').innerHTML+='<div class="stat" style="background:#fff3e6;border-color:#b8632a"><span class="dot" style="background:#b8632a"></span>🔥 Foulée <b>'+_fl+'</b></div>';}
   $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
   $('#countLine').textContent=units.length+' départ(s) (groupage = 1) · '+rows.length+' ligne(s) affichée(s) · '+all.length+' commande(s)';
   $('#syncState').className='sync-state '+(fb.enabled?'on':'local');
@@ -830,7 +881,9 @@ function exportDash(){
   const byT={};units.forEach(u=>{const t=u.rep.transporteur||'(sans)';(byT[t]=byT[t]||[]).push(u);});
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(types).sort()),'Par type');
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(byT).sort((a,b)=>b[1].length-a[1].length)),'Par transporteur');
+  XLSX.utils.book_append_sheet(wb,capacitySheet(),'Capacité');
   XLSX.utils.book_append_sheet(wb,chargeSheet(),'Charge');
+  const tws=trendsSheet();if(tws)XLSX.utils.book_append_sheet(wb,tws,'Tendances');
   XLSX.writeFile(wb,'Dashboard_ponctualite_'+state.currentDate+'.xlsx');
 }
 
@@ -838,8 +891,8 @@ function exportXLSX(){
   if(state.flux==='plan'){exportPlanXLSX();return;}
   if(state.flux==='cmp'){exportCompiled();return;}
   if(state.flux==='in'){exportInXLSX();return;}
-  const rows=visibleRows();const data=[['CLIENT','DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','Quai','Heure Arrivée','Heure charg','Heure Départ','Statut']];
-  rows.forEach(r=>data.push([r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,r.quai,r.arrivee,r.charg,r.depart,STATUSES[effStatus(r)]||r.statut]));
+  const rows=visibleRows();const data=[['CLIENT','DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','LIVRAISON','Quai','Heure Arrivée','Heure charg','Heure Départ','Statut']];
+  rows.forEach(r=>data.push([r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,livTxt(r),r.quai,r.arrivee,r.charg,r.depart,STATUSES[effStatus(r)]||r.statut]));
   const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:14},{wch:7},{wch:18},{wch:13},{wch:30},{wch:30},{wch:6},{wch:11},{wch:10},{wch:10},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Planning');XLSX.writeFile(wb,'Planning_IN-OUT_'+state.currentDate+'.xlsx');
 }
@@ -950,6 +1003,133 @@ $('#fluxSeg').addEventListener('click',e=>{const b=e.target.closest('button');if
 $('#dateInput').onchange=e=>{state.currentDate=e.target.value;activeFilter='';if(fb.enabled)subData();render();};
 $('#searchInput').oninput=render;$('#transpFilter').onchange=render;$('#clientFilter').onchange=render;
 $('#printBtn').onclick=()=>window.print();$('#exportBtn').onclick=exportXLSX;
+/* ===== Tendances multi-jours (volumes, ponctualité, saturation, équilibrage) ===== */
+let trendCache=null;
+function trendDayStats(dt,raw){
+  const day=normalizeDay(JSON.parse(JSON.stringify(raw||{})));
+  const scope=clientScope();
+  const rows=day.rows.filter(r=>!scope||(r.cl||'')===scope);
+  const inRows=day.inRows.filter(r=>!scope||(r.cl||'')===scope);
+  const tol=parseInt($('#tolInput').value)||0;
+  const outU=buildUnits(rows).map(u=>u.rep),inU=inUnits(inRows);
+  const stat=us=>{let ok=0,late=0,lateMin=0;us.forEach(r=>{const m=toMin(r.rdv),a=toMin(r.arrivee);if(m==null||a==null)return;const dl=a-m;if(dl<=tol)ok++;else{late++;lateMin+=dl;}});return{ok,late,lateMin};};
+  const so=stat(outU),si=stat(inU);
+  // Créneaux saturés (≥90 %) sur les capacités paramétrées
+  let sat=0;
+  [['out',outU],['in',inU]].forEach(([fx,us])=>{const per={};us.forEach(r=>{const m=toMin(r.rdv);if(m==null)return;const h=Math.floor(m/60);per[h]=(per[h]||0)+1;});CAP_HOURS.forEach(h=>{const cap=capOf(fx,h);if(cap&&(per[h]||0)*100/cap>=90)sat++;});});
+  // Part du matin (avant la borne T1 de l'équilibrage)
+  const[t1]=chargeBounds();const m1=toMin(t1);
+  const all=[...outU,...inU].filter(r=>toMin(r.rdv)!=null);
+  const matin=all.filter(r=>toMin(r.rdv)<m1).length;
+  return{dt,out:outU.length,inn:inU.length,so,si,sat,matinPct:all.length?Math.round(matin*100/all.length):null};
+}
+function loadTrends(){
+  const n=parseInt($('#trPeriod').value)||7;
+  const dates=[];const base=new Date(state.currentDate+'T12:00:00');
+  for(let i=n-1;i>=0;i--){const d=new Date(base);d.setDate(d.getDate()-i);dates.push(d.toISOString().slice(0,10));}
+  $('#trWrap').innerHTML='<div class="chleg">Chargement des '+n+' journées…</div>';
+  const get=dt=>{
+    if(fb.enabled){try{return fb.db.ref('planning/'+dt).once('value').then(s=>[dt,s.val()]).catch(()=>[dt,state.days[dt]||null]);}catch(e){}}
+    return Promise.resolve([dt,state.days[dt]||null]);
+  };
+  Promise.all(dates.map(get)).then(res=>{
+    trendCache=res.map(([dt,raw])=>trendDayStats(dt,raw)).filter(x=>x.out+x.inn>0);
+    renderTrends();
+  });
+}
+function pctCls(p){return p===null?'':(p>=90?'g':(p>=75?'w':'b'));}
+function renderTrends(){
+  if(!trendCache||!trendCache.length){$('#trWrap').innerHTML='<div class="chleg">Aucune journée avec des camions sur la période'+(fb.enabled?'':' (mode local : seules les journées ouvertes sur ce poste sont connues)')+'.</div>';return;}
+  const T=trendCache;
+  const fr=dt=>{const d=new Date(dt+'T12:00:00');return d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'});};
+  const pct=st=>{const a=st.ok+st.late;return a?Math.round(st.ok*100/a):null;};
+  let rowsH='';
+  const maxVol=Math.max(...T.map(x=>x.out+x.inn));
+  T.forEach(x=>{
+    const po=pct(x.so),pi=pct(x.si);
+    const avg=(x.so.late+x.si.late)?Math.round((x.so.lateMin+x.si.lateMin)/(x.so.late+x.si.late)):null;
+    const vol=x.out+x.inn;
+    rowsH+='<tr><td class="d">'+fr(x.dt)+'</td>'+
+      '<td><div class="occbar occ-ok" style="min-width:96px"><i style="width:'+Math.round(vol*100/maxVol)+'%"></i><b>'+x.out+' 📤 + '+x.inn+' 📥</b></div></td>'+
+      '<td class="trpct '+pctCls(po)+'">'+(po===null?'—':po+' %')+'</td>'+
+      '<td class="trpct '+pctCls(pi)+'">'+(pi===null?'—':pi+' %')+'</td>'+
+      '<td>'+((x.so.late+x.si.late)||'')+'</td>'+
+      '<td>'+(avg!==null?avg+' min':'—')+'</td>'+
+      '<td>'+(x.sat?'<b style="color:#c0392b">'+x.sat+'</b>':'')+'</td>'+
+      '<td>'+(x.matinPct===null?'—':x.matinPct+' %')+'</td></tr>';
+  });
+  // Synthèse de période
+  const sum=(f)=>T.reduce((a,x)=>a+f(x),0);
+  const totOut=sum(x=>x.out),totIn=sum(x=>x.inn);
+  const okAll=sum(x=>x.so.ok+x.si.ok),lateAll=sum(x=>x.so.late+x.si.late);
+  const pAll=(okAll+lateAll)?Math.round(okAll*100/(okAll+lateAll)):null;
+  const best=T.slice().sort((a,b)=>(pct(b.so)??-1)-(pct(a.so)??-1))[0];
+  const worst=T.slice().sort((a,b)=>(pct(a.so)??101)-(pct(b.so)??101))[0];
+  const matins=T.filter(x=>x.matinPct!==null);
+  const mAvg=matins.length?Math.round(matins.reduce((a,x)=>a+x.matinPct,0)/matins.length):null;
+  let verdict='<div class="capverdict">📊 Sur '+T.length+' jour(s) : <b>'+Math.round((totOut+totIn)/T.length)+'</b> camions/jour en moyenne ('+totOut+' 📤 / '+totIn+' 📥) · ponctualité globale <b>'+(pAll===null?'—':pAll+' %')+'</b>'+
+    (best&&worst&&best.dt!==worst.dt&&pct(best.so)!==null&&pct(worst.so)!==null?' · meilleure journée OUT '+fr(best.dt)+' ('+pct(best.so)+' %), plus difficile '+fr(worst.dt)+' ('+pct(worst.so)+' %)':'')+
+    (mAvg!==null?' · charge du matin : <b>'+mAvg+' %</b> en moyenne'+(mAvg>60?' → déséquilibre récurrent, le lissage est un chantier de fond':''):'')+'.</div>';
+  $('#trWrap').innerHTML='<div class="chleg">Période au '+fmtFR(state.currentDate)+' · scope '+(clientScope()||'tous clients')+' · tolérance '+((parseInt($('#tolInput').value))||0)+' min</div>'+
+    '<div style="overflow:auto"><table class="trgrid"><tr><th>Jour</th><th>Volume</th><th>Ponct. 📤</th><th>Ponct. 📥</th><th>Retards</th><th>Retard moyen</th><th>Créneaux saturés</th><th>% matin</th></tr>'+rowsH+'</table></div>'+verdict;
+}
+function trendsSheet(){
+  if(!trendCache||!trendCache.length)return null;
+  const pct=st=>{const a=st.ok+st.late;return a?Math.round(st.ok*100/a):'';};
+  const d=[['Tendances — période au '+fmtFR(state.currentDate)+' — '+(clientScope()||'tous clients')],
+    ['Jour','Camions OUT','Camions IN','Ponctualité OUT %','Ponctualité IN %','Retards','Retard moyen (min)','Créneaux saturés','% avant '+chargeBounds()[0]]];
+  trendCache.forEach(x=>{const lm=(x.so.late+x.si.late);d.push([x.dt,x.out,x.inn,pct(x.so),pct(x.si),lm,lm?Math.round((x.so.lateMin+x.si.lateMin)/lm):'',x.sat,x.matinPct===null?'':x.matinPct]);});
+  const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:12},{wch:11},{wch:11},{wch:14},{wch:14},{wch:8},{wch:15},{wch:14},{wch:12}];return ws;
+}
+$('#trGo').onclick=loadTrends;
+/* ===== Capacité & occupation par créneau (planning capacitaire vs réalisé) ===== */
+const CAP_HOURS=[6,7,8,9,10,11,12,13,14,15,16,17,18];
+const DEFAULT_CAP={6:9,7:9,8:9,9:9,10:9,11:9,12:9,13:6,14:9,15:9,16:9,17:4,18:7};
+function capOf(flux,h){const m=(flux==='in'?state.settings.capIn:state.settings.capOut)||{};const v=m[h];return v===undefined||v===''?(DEFAULT_CAP[h]!==undefined?DEFAULT_CAP[h]:null):(parseInt(v)||0);}
+function capacityData(flux){
+  const tol=parseInt($('#tolInput').value)||0;
+  const units=flux==='in'?inUnits(scopedInRows()):buildUnits(scopedRows()).map(u=>u.rep);
+  const slots={};CAP_HOURS.forEach(h=>slots[h]={cap:capOf(flux,h),res:0,ok:0,late:0,lateMin:0});
+  let other=0;
+  units.forEach(r=>{const m=toMin(r.rdv);if(m==null){other++;return;}
+    const h=Math.floor(m/60);if(!slots[h]){other++;return;}
+    const sl=slots[h];sl.res++;
+    if(r.arrivee){const am=toMin(r.arrivee);if(am!=null){const dl=am-m;if(dl<=tol)sl.ok++;else{sl.late++;sl.lateMin+=dl;}}}
+  });
+  return{slots,other,tol,units:units.length};
+}
+function renderCapacity(){
+  const flux=state.flux==='in'?'in':'out';
+  const c=capacityData(flux);
+  let head='<tr><th>Créneau</th><th>Capacité</th><th>Réservés</th><th>Occupation</th><th>À l\'heure</th><th>En retard</th><th>Retard moyen</th></tr>';
+  let body='',satRes=0,satLate=0,satOk=0,othRes=0,othLate=0,othOk=0;
+  CAP_HOURS.forEach(h=>{
+    const sl=c.slots[h];const cap=sl.cap;
+    const pct=cap?Math.round(sl.res*100/cap):null;
+    const cls=pct===null?'':(pct>=100?'occ-full':(pct>=80?'occ-warn':'occ-ok'));
+    const bar=pct===null?'—':'<div class="occbar '+cls+'"><i style="width:'+Math.min(100,pct)+'%"></i><b>'+sl.res+'/'+cap+' · '+pct+'%</b></div>';
+    const avg=sl.late?Math.round(sl.lateMin/sl.late)+' min':'—';
+    body+='<tr><td class="slot">'+String(h).padStart(2,'0')+'h – '+String(h+1).padStart(2,'0')+'h</td><td>'+(cap===null?'—':cap)+'</td><td><b>'+sl.res+'</b></td><td>'+bar+'</td><td>'+(sl.ok||'')+'</td><td>'+(sl.late?'<b style="color:#c0392b">'+sl.late+'</b>':'')+'</td><td>'+avg+'</td></tr>';
+    if(pct!==null&&pct>=90){satRes+=sl.res;satLate+=sl.late;satOk+=sl.ok;}else{othRes+=sl.res;othLate+=sl.late;othOk+=sl.ok;}
+  });
+  // Corrélation saturation ↔ retards (sur camions arrivés)
+  let verdict='';
+  const satA=satLate+satOk,othA=othLate+othOk;
+  if(satA&&othA){
+    const ps=Math.round(satLate*100/satA),po=Math.round(othLate*100/othA);
+    verdict='<div class="capverdict">🔎 Créneaux saturés (≥90 %) : <b>'+ps+'%</b> de camions en retard ('+satLate+'/'+satA+') — autres créneaux : <b>'+po+'%</b> ('+othLate+'/'+othA+').'+(ps>po+10?' Les retards se concentrent sur les créneaux saturés → argument chiffré pour <b>lisser la charge</b>.':'')+'</div>';
+  }else if(!c.units)verdict='<div class="capverdict">Aucun camion sur cette journée.</div>';
+  $('#capWrap').innerHTML='<div class="chleg" style="margin:2px 0 8px">Flux '+(flux==='in'?'📥 Réception':'📤 Expédition')+' — tolérance retard : RDV + '+c.tol+' min · capacités réglables dans ⚙️ Paramètres'+(c.other?' · '+c.other+' camion(s) hors 6h-18h ou sans RDV':'')+'</div>'+
+    '<div style="overflow:auto"><table class="capgrid">'+head+body+'</table></div>'+verdict;
+}
+function capacitySheet(){
+  const flux=state.flux==='in'?'in':'out';const c=capacityData(flux);
+  const d=[['Capacité & occupation — '+(flux==='in'?'Réception':'Expédition')+' — '+fmtFR(state.currentDate)+' (tolérance '+c.tol+' min)'],
+    ['Créneau','Capacité','Réservés','Occupation %','À l\'heure','En retard','Retard moyen (min)']];
+  CAP_HOURS.forEach(h=>{const sl=c.slots[h];d.push([String(h).padStart(2,'0')+'h-'+String(h+1).padStart(2,'0')+'h',sl.cap===null?'':sl.cap,sl.res,sl.cap?Math.round(sl.res*100/sl.cap):'',sl.ok,sl.late,sl.late?Math.round(sl.lateMin/sl.late):'']);});
+  if(c.other)d.push(['Hors 6h-18h / sans RDV','',c.other,'','','','']);
+  const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:12},{wch:9},{wch:9},{wch:12},{wch:9},{wch:9},{wch:16}];return ws;
+}
 /* ===== Équilibrage de la charge (IN+OUT) : répartition des camions par tranches horaires ===== */
 function chargeBounds(){const t1=state.settings.chargeT1||'13:00',t2=state.settings.chargeT2||'17:00';return toMin(t1)<toMin(t2)?[t1,t2]:['13:00','17:00'];}
 function inUnits(rows){const map=new Map();rows.forEach(r=>{const k=(r.cl||'')+':'+(r.container||r.id);if(!map.has(k))map.set(k,r);});return[...map.values()];}
@@ -1013,8 +1193,8 @@ function chargeSheet(){
   const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:16},{wch:7},{wch:7},{wch:8},{wch:10}];return ws;
 }
 $('#chT1').onchange=$('#chT2').onchange=()=>{state.settings.chargeT1=$('#chT1').value||'13:00';state.settings.chargeT2=$('#chT2').value||'17:00';save();renderCharge();};
-$('#dashBtn').onclick=()=>{renderDash();renderCharge();$('#dashModal').classList.add('open');};
-$('#tolInput').oninput=renderDash;$('#dashExport').onclick=exportDash;
+$('#dashBtn').onclick=()=>{renderDash();renderCapacity();renderCharge();$('#dashModal').classList.add('open');};
+$('#tolInput').oninput=()=>{renderDash();renderCapacity();};$('#dashExport').onclick=exportDash;
 $('#importBtn').onclick=()=>{$('#importDate').value=state.currentDate;const isIn=state.flux==='in';
   $('#clientDatalist').innerHTML=knownClients().map(c=>'<option value="'+c.replace(/"/g,'&quot;')+'">').join('');
   const cf=$('#clientFilter').value;if(cf)$('#importClient').value=cf;
@@ -1108,6 +1288,7 @@ function openUnit(flux,id){
       touch();save();render();openUnit(curUnit.flux,curUnit.id);
     };
   }
+  $('#uPoch').style.display=isClient?'none':'';
   loadUnitDocs(flux,r,isClient);
   renderUnitComments(flux,r);
   $('#unitModal').classList.add('open');
@@ -1135,8 +1316,65 @@ $('#uCmtAdd').onclick=()=>{const r=findRow(curUnit.flux,curUnit.id);if(!r)return
 $('#uCmtInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#uCmtAdd').click();}});
 
 // ---- Slots (admin) ----
-$('#slotBtn').onclick=()=>{$('#quaisInput').value=((state.settings&&state.settings.quais)||[]).join(', ');$('#slotsInInput').value=(state.settings&&state.settings.slotsIn)||10;$('#slotsOutInput').value=(state.settings&&state.settings.slotsOut)||10;$('#slotModal').classList.add('open');};
-$('#slotSave').onclick=()=>{const si=Math.max(1,Math.min(30,parseInt($('#slotsInInput').value)||10)),so=Math.max(1,Math.min(30,parseInt($('#slotsOutInput').value)||10));const quais=[...new Set($('#quaisInput').value.split(/[,;\n]+/).map(s=>s.trim()).filter(Boolean))];state.settings=Object.assign({},state.settings,{slotsIn:si,slotsOut:so,quais:quais});save();fillQuaiDL();$('#slotModal').classList.remove('open');render();};
+function renderCapTable(){
+  const t=$('#capTable');if(!t)return;
+  let h='<tr><th></th>'+CAP_HOURS.map(x=>'<th>'+String(x).padStart(2,'0')+'h</th>').join('')+'</tr>';
+  ['out','in'].forEach(fx=>{
+    h+='<tr><th style="text-align:left">'+(fx==='out'?'📤 OUT':'📥 IN')+'</th>'+CAP_HOURS.map(x=>'<td><input type="number" min="0" max="99" id="cap_'+fx+'_'+x+'" value="'+(capOf(fx,x)===null?'':capOf(fx,x))+'"></td>').join('')+'</tr>';
+  });
+  t.innerHTML=h;
+}
+$('#slotBtn').onclick=()=>{renderCapTable();ptRefresh();$('#quaisInput').value=((state.settings&&state.settings.quais)||[]).join(', ');$('#slotsInInput').value=(state.settings&&state.settings.slotsIn)||10;$('#slotsOutInput').value=(state.settings&&state.settings.slotsOut)||10;$('#slotModal').classList.add('open');};
+function ptSel(){return{cl:($('#ptClient').value||'').trim().toUpperCase(),flux:$('#ptFlux').value};}
+function ptRefresh(){
+  const{cl,flux}=ptSel();
+  const done=t=>{$('#ptStatus').textContent=t?('✏️ Gabarit personnalisé '+(cl||'standard')):('Gabarit standard'+(cl?' (aucun personnalisé pour '+cl+')':''));};
+  if(!cl){done(null);return;}
+  loadPochTpl(cl,flux).then(done);
+}
+$('#ptClient').oninput=ptRefresh;$('#ptFlux').onchange=ptRefresh;
+$('#ptExp').onclick=()=>{
+  const{cl,flux}=ptSel();
+  const go=t=>{const tpl=t||(flux==='in'?POCH_TPL.inn:POCH_TPL.out);
+    tplToWorkbook(tpl,'Pochette_'+(flux==='in'?'RECEPTION':'EXPEDITION')+'_'+(cl||'STANDARD')+'.xlsx');};
+  cl?loadPochTpl(cl,flux).then(go):go(null);
+};
+$('#ptImpBtn').onclick=()=>$('#ptImpFile').click();
+$('#ptImpFile').onchange=e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const{cl,flux}=ptSel();
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames.includes('POCHETTE')?'POCHETTE':wb.SheetNames[0]];
+      let stylesRows=null;
+      if(wb.SheetNames.includes('STYLES'))stylesRows=XLSX.utils.sheet_to_json(wb.Sheets['STYLES'],{header:1,defval:''});
+      const base=flux==='in'?POCH_TPL.inn:POCH_TPL.out;
+      const tpl=wsToTpl(ws,stylesRows,base);
+      if(!tpl){alert('Gabarit vide ou illisible.');return;}
+      const k=pochTplKey(cl,flux);
+      state.pochTpl=state.pochTpl||{};state.pochTpl[k]=tpl;pochTplCache[k]=tpl;
+      if(fb.enabled&&cl){try{fb.db.ref('pochtpl/'+fbSafe(cl)+'/'+flux).set(tpl);}catch(err){}}
+      if(!cl){ (flux==='in'?POCH_TPL.inn:POCH_TPL.out).cells=tpl.cells; Object.assign(flux==='in'?POCH_TPL.inn:POCH_TPL.out,tpl); }
+      save();ptRefresh();
+      alert('✅ Gabarit '+(flux==='in'?'réception':'expédition')+' importé pour '+(cl||'le standard')+' ('+tpl.cells.length+' cellules, '+tpl.merges.length+' fusions).'+(fb.enabled&&cl?' Synchronisé pour tous les postes.':''));
+    }catch(err){alert('Import impossible : '+err.message);}
+  };
+  rd.readAsBinaryString(f);
+};
+$('#ptReset').onclick=()=>{
+  const{cl,flux}=ptSel();
+  if(!cl){alert('Choisis un client (le standard ne se réinitialise pas ici).');return;}
+  if(!confirm('Rétablir le gabarit standard pour '+cl+' ('+(flux==='in'?'réception':'expédition')+') ?'))return;
+  const k=pochTplKey(cl,flux);
+  if(state.pochTpl)delete state.pochTpl[k];
+  pochTplCache[k]=false;
+  if(fb.enabled){try{fb.db.ref('pochtpl/'+fbSafe(cl)+'/'+flux).remove();}catch(err){}}
+  save();ptRefresh();
+};
+$('#slotSave').onclick=()=>{const si=Math.max(1,Math.min(30,parseInt($('#slotsInInput').value)||10)),so=Math.max(1,Math.min(30,parseInt($('#slotsOutInput').value)||10));const quais=[...new Set($('#quaisInput').value.split(/[,;\n]+/).map(s=>s.trim()).filter(Boolean))];const capIn={},capOut={};CAP_HOURS.forEach(h=>{const vo=$('#cap_out_'+h),vi=$('#cap_in_'+h);if(vo&&vo.value!=='')capOut[h]=parseInt(vo.value)||0;if(vi&&vi.value!=='')capIn[h]=parseInt(vi.value)||0;});
+state.settings=Object.assign({},state.settings,{slotsIn:si,slotsOut:so,quais:quais,capIn:capIn,capOut:capOut});save();fillQuaiDL();$('#slotModal').classList.remove('open');render();};
 /* Datalist des quais (suggestions de saisie) */
 function fillQuaiDL(){let dl=$('#quaiDL');if(!dl){dl=document.createElement('datalist');dl.id='quaiDL';document.body.appendChild(dl);}dl.innerHTML=((state.settings&&state.settings.quais)||[]).map(q=>'<option value="'+String(q).replace(/"/g,'&quot;')+'">').join('');}
 /* Alerte quai occupé (non bloquante) : même quai sur un autre RDV sans heure de départ */
@@ -1191,9 +1429,11 @@ const IN_COLS=[{key:'rdv',label:'Time of delivery'},{key:'container',label:'Cont
 const IN_OPS=['Quai','Heure Arrivée','Heure decharg','Heure Départ','Statut'];
 function normRec(rec){const g={};for(const k in rec)g[normKey(k)]=rec[k]==null?'':String(rec[k]).trim();return g;}
 function cleanCode(v){return(v&&!/^(en attente|0)$/i.test(v))?v:'';}
-function inExtract(g){return{rdv:cleanTime(g['time of delivery']||g['rdv']||''),container:cleanCode(g['container no']||g['container']||''),message:(g['message']||'').trim(),sd:cleanCode(g['sd document']||g['sd']||''),qty:parseFloat(String(g['quantity']||g['quantite']||g['quantites']||'0').replace(',','.'))||0};}
+function inExtract(g){return{rdv:cleanTime(g['time of delivery']||g['rdv']||''),container:cleanCode(g['container no']||g['container']||''),message:(g['message']||'').trim(),sd:cleanCode(g['sd document']||g['sd']||''),qty:parseFloat(String(g['quantity']||g['quantite']||g['quantites']||'0').replace(',','.'))||0,mat:(g['material']||'').trim(),seal:cleanCode(g['seal no']||g['seal']||''),asn:cleanCode(g['reference']||'')};}
 function inKey(r){return[(r.cl||''),(r.rdv0||r.rdv),r.container,r.sd,r.message].join('|');}
-function buildInRows(records,cl){cl=cl||'';const map=new Map();records.forEach(rec=>{const g=normRec(rec);if(!Object.keys(g).length)return;const e=inExtract(g);if(!e.container&&!e.sd&&!e.qty)return;const k=[cl,e.rdv,e.container,e.sd,e.message].join('|');if(map.has(k))map.get(k).qty+=e.qty;else map.set(k,{id:uid(),cl:cl,rdv:e.rdv,rdv0:e.rdv,container:e.container,message:e.message,sd:e.sd,qty:e.qty,groupage:e.container,quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'});});return[...map.values()];}
+function buildInRows(records,cl){cl=cl||'';const map=new Map();records.forEach(rec=>{const g=normRec(rec);if(!Object.keys(g).length)return;const e=inExtract(g);if(!e.container&&!e.sd&&!e.qty)return;const k=[cl,e.rdv,e.container,e.sd,e.message].join('|');
+    if(map.has(k)){const t=map.get(k);t.qty+=e.qty;if(e.mat&&(t.refs=t.refs||[]).length<80)t.refs.push({m:e.mat,q:e.qty});if(!t.seal&&e.seal)t.seal=e.seal;if(!t.asn&&e.asn)t.asn=e.asn;}
+    else map.set(k,{id:uid(),cl:cl,rdv:e.rdv,rdv0:e.rdv,container:e.container,message:e.message,sd:e.sd,qty:e.qty,refs:e.mat?[{m:e.mat,q:e.qty}]:[],seal:e.seal||'',asn:e.asn||'',groupage:e.container,quai:'',arrivee:'',charg:'',depart:'',statut:'nonpresente'});});return[...map.values()];}
 function mergeInRows(target,incoming,replace,cl){cl=cl||'';const others=target.filter(r=>(r.cl||'')!==cl);const mine=target.filter(r=>(r.cl||'')===cl);if(replace)return others.concat(incoming);const out=mine.map(r=>Object.assign({},r));const m=new Map();out.forEach(r=>m.set(inKey(r),r));incoming.forEach(r=>{const k=inKey(r);if(m.has(k))m.get(k).qty=r.qty;else{out.push(r);m.set(k,r);}});return others.concat(out);}
 const IN_FMT11=['Delivery Date','Time of delivery','Plant','LGORT','MESSAGE','Supplier','Material','Quantity','Container No.','SD Document','Reference'];
 const IN_FMT10=['Delivery Date','Time of delivery','LGORT','MESSAGE','Material','Quantity','Container No.','SD Document','Seal No.','Reference'];
@@ -1309,7 +1549,9 @@ function exportInDash(){
   const byC={};units.forEach(u=>{const t=u.rep.container||'(sans)';(byC[t]=byC[t]||[]).push(u);});
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(bySlot).sort()),'Par creneau');
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(byC).sort()),'Par conteneur');
+  XLSX.utils.book_append_sheet(wb,capacitySheet(),'Capacité');
   XLSX.utils.book_append_sheet(wb,chargeSheet(),'Charge');
+  const tws=trendsSheet();if(tws)XLSX.utils.book_append_sheet(wb,tws,'Tendances');
   XLSX.writeFile(wb,'Dashboard_reception_IN_'+state.currentDate+'.xlsx');
 }
 /* ===================== VUE COMPILÉE IN / OUT ===================== */
@@ -1327,12 +1569,20 @@ function renderCompiled(isClient){
   $('#head').innerHTML='<th class="cmpsec"></th><th class="cmpslot">slot</th>'+CMP_HOURS.map(h=>'<th class="cmphr">'+h.slice(0,5)+'</th>').join('');
   const body=$('#body');body.innerHTML='';
   function section(name,band,B,maxR){
+    const fx=band==='recep'?'in':'out';
     for(let s=1;s<=maxR;s++){
       const tr=document.createElement('tr');tr.className='cmprow '+band;
       let html='';
       if(s===1)html+='<td class="cmpsec" rowspan="'+maxR+'"><span>'+name+'</span></td>';
       html+='<td class="cmpslot">'+s+'</td>';
-      CMP_HOURS.forEach(h=>{const cell=B[h][s-1];if(cell){const warn=(cell.flux==='out'&&isFoulee(cell.cr))?' <span class="warnicon" title="En foulée">⚠️</span>':'';const cmt=cell.cmt?' <span class="cmtdot" title="'+cell.cmt+' commentaire(s)">💬</span>':'';html+='<td class="cmpcell has '+cell.statut+'" data-flux="'+cell.flux+'" data-id="'+cell.id+'" title="Cliquer pour saisir / commenter">'+cell.label.replace(/</g,'&lt;')+warn+cmt+'</td>';}else html+='<td class="cmpcell"></td>';});
+      CMP_HOURS.forEach(h=>{
+        const cap=capOf(fx,parseInt(h));
+        const capCls=(cap!=null&&cap>0)?((s===cap?' caplim':'')+(s>cap?' capover':'')):'';
+        const tt=(cap!=null&&s===cap)?' title="Capacité '+(fx==='in'?'réception':'expédition')+' '+h.slice(0,5)+' : '+cap+' slot(s) — réglable dans ⚙️"':'';
+        const cell=B[h][s-1];
+        if(cell){const warn=(cell.flux==='out'&&isFoulee(cell.cr))?' <span class="warnicon" title="En foulée">⚠️</span>':'';const cmt=cell.cmt?' <span class="cmtdot" title="'+cell.cmt+' commentaire(s)">💬</span>':'';html+='<td class="cmpcell has '+cell.statut+capCls+'" data-flux="'+cell.flux+'" data-id="'+cell.id+'" title="'+((s>cap&&cap!=null)?'⛔ Au-delà de la capacité ('+cap+') — ':'')+'Cliquer pour saisir / commenter">'+cell.label.replace(/</g,'&lt;')+warn+cmt+'</td>';}
+        else html+='<td class="cmpcell'+capCls+'"'+tt+'></td>';
+      });
       tr.innerHTML=html;body.appendChild(tr);
     }
   }
@@ -1344,7 +1594,7 @@ function renderCompiled(isClient){
     '<div class="stat total"><span class="dot" style="background:var(--termine-bd)"></span>Réception <b>'+bIn+'</b></div>'+
     '<div class="stat total"><span class="dot" style="background:var(--cours-bd)"></span>Expédition <b>'+bOut+'</b></div>'+
     '<div class="stat total"><span class="dot"></span>Total slots <b>'+(bIn+bOut)+'</b></div>';
-  $('#countLine').textContent='Vue compilée — '+(bIn+bOut)+' créneaux bookés ('+bIn+' réception · '+bOut+' expédition) · '+slotsIn+'/'+slotsOut+' slots';
+  $('#countLine').textContent='Vue compilée — '+(bIn+bOut)+' créneaux bookés ('+bIn+' réception · '+bOut+' expédition) · '+slotsIn+'/'+slotsOut+' slots · trait rouge = capacité par créneau (⚙️), hachures = au-delà';
   $('#emptyState').style.display='none';$('.tablewrap').style.display='block';
   $('#syncState').className='sync-state '+(fb.enabled?'on':'local');$('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
 }
@@ -1751,6 +2001,306 @@ function exportPlanXLSX(){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Plan quais');XLSX.writeFile(wb,'Plan_quais_'+state.currentDate+'.xlsx');
 }
 seedQuaisFromPlan();
+
+/* ===================== POCHETTES DE CHARGEMENT / RÉCEPTION (impression) ===================== */
+/* Réplique imprimable des pochettes papier, pré-remplies au maximum depuis l'extraction.
+   OUT : une pochette par code chargement (departure). IN : une par conteneur. */
+const POCH_TPL={"out":{"r1":1,"c1":1,"nr":64,"nc":11,"colW":[87,59,101,59,33,47,96,40,79,86,103],"rowH":[20,20,18,18,18,34,11,20,20,8,27,20,29,20,30,20,33,23,33,23,23,23,23,27,14,20,20,20,20,8,9,8,23,21,20,20,20,20,20,20,20,20,8,9,8,22,18,18,18,19,20,18,18,18,18,13,61,48,8,9,8,40,40,18],"cells":[[1,1,{"s":10}],[1,2,{"s":10}],[1,3,{"s":10}],[1,4,{"s":10}],[1,5,{"s":10}],[1,6,{"s":10}],[1,7,{"s":10}],[1,8,{"s":10}],[1,9,{"s":10}],[1,10,{"s":10}],[1,11,{"s":10}],[2,1,{"s":10}],[2,2,{"s":10}],[2,3,{"s":10}],[2,4,{"s":10}],[2,5,{"s":10}],[2,6,{"s":10}],[2,7,{"s":10}],[2,8,{"s":10}],[2,9,{"s":10}],[2,10,{"s":10}],[2,11,{"s":10}],[3,1,{"t":"EXPEDITION SAMSUNG","s":18,"a":"c"}],[3,2,{"s":10}],[3,3,{"s":10}],[3,4,{"s":10}],[3,5,{"s":10}],[3,6,{"s":10}],[3,7,{"s":10}],[3,8,{"s":10}],[3,9,{"s":10}],[3,10,{"s":10}],[3,11,{"s":10}],[4,1,{"s":10}],[4,2,{"s":10}],[4,3,{"s":10}],[4,4,{"s":10}],[4,5,{"s":10}],[4,6,{"s":10}],[4,7,{"s":10}],[4,8,{"s":10}],[4,9,{"s":10}],[4,10,{"s":10}],[4,11,{"s":10}],[5,1,{"t":"DATE DE CHARGEMENT:","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10}],[5,2,{"b":[1,0,1,0],"s":10}],[5,3,{"b":[1,0,1,0],"s":10}],[5,4,{"b":[1,1,1,0],"s":10}],[5,5,{"s":10}],[5,6,{"s":10}],[5,7,{"t":"HEURE DE CHARGEMENT :","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10}],[5,8,{"b":[1,0,1,0],"s":10}],[5,9,{"b":[1,0,1,0],"s":10}],[5,10,{"b":[1,0,1,0],"s":10}],[5,11,{"b":[1,1,1,0],"s":10}],[6,1,{"t":"=+_xlfn.XLOOKUP(C8,extraction!A:A,extraction!Q:Q)","b":[0,1,1,1],"w":1,"s":14}],[6,2,{"b":[0,0,1,0],"s":10}],[6,3,{"b":[0,0,1,0],"s":10}],[6,4,{"b":[0,1,1,0],"s":10}],[6,5,{"s":10}],[6,6,{"s":10}],[6,7,{"t":"=+_xlfn.XLOOKUP(C8,extraction!A:A,extraction!R:R)","b":[0,1,1,1],"w":1,"s":14}],[6,8,{"b":[0,0,1,0],"s":10}],[6,9,{"b":[0,0,1,0],"s":10}],[6,10,{"b":[0,0,1,0],"s":10}],[6,11,{"b":[0,1,1,0],"s":10}],[7,1,{"s":10}],[7,2,{"s":10}],[7,3,{"s":10}],[7,4,{"s":10}],[7,5,{"s":10}],[7,6,{"s":10}],[7,7,{"s":10}],[7,8,{"s":10}],[7,9,{"s":10}],[7,10,{"s":10}],[7,11,{"s":10}],[8,1,{"t":"CODE CHARGEMENT:","w":1,"s":10}],[8,2,{"s":10}],[8,3,{"t":"DW330068838","b":[1,0,1,1],"w":1,"s":14,"a":"c"}],[8,4,{"b":[1,0,0,0],"s":10}],[8,5,{"t":"=_xlfn.XLOOKUP(C8,extraction!A:A,extraction!I:I)","b":[1,1,1,0],"w":1,"s":14,"a":"c"}],[8,6,{"b":[1,0,0,0],"s":10}],[8,7,{"b":[1,1,0,0],"s":10}],[8,8,{"s":10}],[8,9,{"t":"REMORQUE :","f":"D9D9D9","b":[1,1,0,1],"w":1,"s":10,"a":"c"}],[8,10,{"b":[1,0,0,0],"s":10}],[8,11,{"b":[1,1,0,0],"s":10}],[9,1,{"s":10}],[9,2,{"s":10}],[9,3,{"b":[0,0,1,1],"s":10}],[9,4,{"b":[0,0,1,0],"s":10}],[9,5,{"b":[0,0,1,0],"s":10}],[9,6,{"b":[0,0,1,0],"s":10}],[9,7,{"b":[0,1,1,0],"s":10}],[9,8,{"s":8}],[9,9,{"b":[0,0,0,1],"s":8}],[9,10,{"s":10}],[9,11,{"b":[0,1,0,0],"w":1,"s":10}],[10,1,{"s":10}],[10,2,{"s":10}],[10,3,{"s":10}],[10,4,{"s":10}],[10,5,{"s":10}],[10,6,{"s":10}],[10,7,{"s":10}],[10,8,{"s":10}],[10,9,{"b":[0,0,0,1],"s":10}],[10,10,{"w":1,"a":"r"}],[10,11,{"b":[0,1,0,0],"w":1,"a":"r"}],[11,1,{"s":10}],[11,2,{"t":"NBR COLIS","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[11,3,{"t":"PREPARATEUR","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[11,4,{"t":"EMPLACEMENTS","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[11,5,{"b":[1,0,1,0],"s":10}],[11,6,{"b":[1,0,1,0],"s":10}],[11,7,{"b":[1,1,1,0],"s":10}],[11,8,{"s":10}],[11,9,{"b":[0,0,1,1],"s":10}],[11,10,{"t":"Bachée","b":[0,0,1,0],"w":1}],[11,11,{"t":"Tolée","b":[0,1,1,0],"w":1,"a":"c"}],[12,1,{"t":"DPS","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[12,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[12,3,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[12,4,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[12,5,{"b":[1,0,0,0],"s":10}],[12,6,{"b":[1,0,0,0],"s":10}],[12,7,{"b":[1,1,0,0],"s":10}],[12,8,{"s":10}],[12,9,{"s":10}],[12,10,{"s":10}],[12,11,{"s":10}],[13,1,{"b":[0,1,1,1],"s":10}],[13,2,{"b":[0,1,1,1],"s":10}],[13,3,{"b":[0,1,1,1],"s":10}],[13,4,{"b":[0,0,1,1],"s":10}],[13,5,{"b":[0,0,1,0],"s":10}],[13,6,{"b":[0,0,1,0],"s":10}],[13,7,{"b":[0,1,1,0],"s":10}],[13,8,{"s":10}],[13,9,{"t":"CONTRÔLE\n(N° procédure)","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[13,10,{"t":"CONTROLEUR","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[13,11,{"b":[1,1,1,0],"s":10}],[14,1,{"t":"HOMOGENES","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[14,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[14,3,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[14,4,{"b":[1,1,1,1],"s":10,"a":"c"}],[14,5,{"b":[1,0,0,0],"s":10}],[14,6,{"b":[1,0,0,0],"s":10}],[14,7,{"b":[1,1,0,0],"s":10}],[14,8,{"s":10}],[14,9,{"t":"040","b":[1,1,1,1],"w":1,"s":12,"a":"c"}],[14,10,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[14,11,{"b":[1,1,0,0],"s":10}],[15,1,{"b":[0,1,1,1],"s":10}],[15,2,{"b":[0,1,1,1],"s":10}],[15,3,{"b":[0,1,1,1],"s":10}],[15,4,{"b":[0,0,1,1],"s":10}],[15,5,{"b":[0,0,1,0],"s":10}],[15,6,{"b":[0,0,1,0],"s":10}],[15,7,{"b":[0,1,1,0],"s":10}],[15,8,{"s":10}],[15,9,{"b":[0,1,1,1],"s":10}],[15,10,{"b":[0,0,1,1],"s":10}],[15,11,{"b":[0,1,1,0],"s":10}],[16,1,{"t":"PICKING","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[16,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[16,3,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[16,4,{"b":[1,1,1,1],"s":10,"a":"c"}],[16,5,{"b":[1,0,0,0],"s":10}],[16,6,{"b":[1,0,0,0],"s":10}],[16,7,{"b":[1,1,0,0],"s":10}],[16,8,{"s":10}],[16,9,{"s":10,"a":"c"}],[16,10,{"w":1,"s":10,"a":"c"}],[16,11,{"s":10}],[17,1,{"b":[0,1,1,1],"s":10}],[17,2,{"b":[0,1,1,1],"s":10}],[17,3,{"b":[0,1,1,1],"s":10}],[17,4,{"b":[0,0,1,1],"s":10}],[17,5,{"b":[0,0,1,0],"s":10}],[17,6,{"b":[0,0,1,0],"s":10}],[17,7,{"b":[0,1,1,0],"s":10}],[17,8,{"s":10}],[17,9,{"s":10}],[17,10,{"s":10}],[17,11,{"s":10}],[18,1,{"t":"VRAC","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[18,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[18,3,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[18,4,{"b":[1,1,1,1],"s":10,"a":"c"}],[18,5,{"b":[1,0,0,0],"s":10}],[18,6,{"b":[1,0,0,0],"s":10}],[18,7,{"b":[1,1,0,0],"s":10}],[18,8,{"s":10}],[18,9,{"t":"Contrôle conforme :","b":[1,0,0,1],"w":1,"s":10}],[18,10,{"b":[1,0,0,0],"w":1,"s":10}],[18,11,{"b":[1,1,0,0],"w":1,"s":10}],[19,1,{"b":[0,1,1,1],"s":10}],[19,2,{"b":[0,1,1,1],"s":10}],[19,3,{"b":[0,1,1,1],"s":10}],[19,4,{"b":[0,0,1,1],"s":10}],[19,5,{"b":[0,0,1,0],"s":10}],[19,6,{"b":[0,0,1,0],"s":10}],[19,7,{"b":[0,1,1,0],"s":10}],[19,8,{"s":10}],[19,9,{"b":[0,0,0,1],"s":10}],[19,10,{"w":1,"s":10,"a":"r"}],[19,11,{"b":[0,1,0,0],"w":1,"s":10,"a":"r"}],[20,1,{"s":10}],[20,2,{"s":10}],[20,3,{"s":10}],[20,4,{"s":10}],[20,5,{"s":10}],[20,6,{"s":10}],[20,7,{"s":10}],[20,8,{"s":10}],[20,9,{"t":"Corrections réalisées :","b":[0,1,0,1],"w":1,"s":10}],[20,10,{"s":10}],[20,11,{"b":[0,1,0,0],"s":10}],[21,1,{"t":"TOTAL COLIS :","b":[1,1,1,1],"w":1,"s":10}],[21,2,{"b":[1,1,0,0],"s":10}],[21,3,{"t":"TOTAL PALETTES","b":[1,1,1,1],"w":1,"s":10}],[21,4,{"b":[1,0,0,0],"s":10}],[21,5,{"b":[1,1,0,0],"s":10}],[21,6,{"t":"N° DE COMMANDE :","f":"D9D9D9","b":[1,1,0,1],"w":1,"s":10,"a":"c"}],[21,7,{"b":[1,1,0,0],"s":10}],[21,8,{"s":10}],[21,9,{"b":[0,0,1,1],"s":10}],[21,10,{"b":[0,0,1,0],"w":1,"s":10}],[21,11,{"b":[0,1,1,0],"w":1,"s":10}],[22,1,{"b":[0,0,1,1],"s":10}],[22,2,{"b":[0,1,1,0],"s":10}],[22,3,{"b":[0,0,1,1],"s":10}],[22,4,{"b":[0,0,1,0],"s":10}],[22,5,{"b":[0,1,1,0],"s":10}],[22,6,{"t":"=_xlfn.XLOOKUP(C8,extraction!A:A,extraction!D:D)","b":[0,1,1,1],"w":1,"s":14,"a":"c"}],[22,7,{"s":10}],[22,8,{"s":10}],[22,9,{"s":10}],[22,10,{"s":10}],[22,11,{"b":[0,1,0,0],"s":10}],[23,1,{"t":"CHARGEUR:","b":[1,1,1,1],"w":1,"s":10}],[23,2,{"b":[1,0,0,0],"s":10}],[23,3,{"b":[1,0,0,0],"s":10}],[23,4,{"b":[1,1,0,0],"s":10}],[23,5,{"s":10}],[23,6,{"b":[0,0,0,1],"s":10}],[23,7,{"s":10}],[23,8,{"s":10}],[23,9,{"s":10}],[23,10,{"s":10}],[23,11,{"b":[0,1,0,0],"s":10}],[24,1,{"b":[0,0,1,1],"s":10}],[24,2,{"b":[0,0,1,0],"s":10}],[24,3,{"b":[0,0,1,0],"s":10}],[24,4,{"b":[0,1,1,0],"s":10}],[24,5,{"s":10}],[24,6,{"b":[0,0,1,1],"s":10}],[24,7,{"b":[0,0,1,0],"s":10}],[24,8,{"b":[0,0,1,0],"s":10}],[24,9,{"b":[0,0,1,0],"s":10}],[24,10,{"b":[0,0,1,0],"s":10}],[24,11,{"b":[0,1,1,0],"s":10}],[25,1,{"s":10}],[25,2,{"s":10}],[25,3,{"s":10}],[25,4,{"s":10}],[25,5,{"s":10}],[25,6,{"s":10}],[25,7,{"s":10}],[25,8,{"s":10}],[25,9,{"s":10}],[25,10,{"s":10}],[25,11,{"s":10}],[26,1,{"t":"DESTINATAIRE :","f":"D9D9D9","b":[1,1,0,1],"w":1,"s":10}],[26,2,{"b":[1,0,0,0],"s":10}],[26,3,{"b":[1,0,0,0],"s":10}],[26,4,{"b":[1,1,0,0],"s":10}],[26,5,{"s":10}],[26,6,{"s":10}],[26,7,{"t":"RUPTURE :","f":"D9D9D9","b":[1,1,0,1],"w":1,"s":10}],[26,8,{"b":[1,0,0,0],"s":10}],[26,9,{"b":[1,0,0,0],"s":10}],[26,10,{"b":[1,0,0,0],"s":10}],[26,11,{"b":[1,1,0,0],"s":10}],[27,1,{"t":"=_xlfn.XLOOKUP(C8,extraction!A:A,extraction!M:M)","b":[0,1,1,1],"w":1,"s":14,"a":"c"}],[27,2,{"s":10}],[27,3,{"s":10}],[27,4,{"b":[0,1,0,0],"s":10}],[27,5,{"s":10}],[27,6,{"s":10}],[27,7,{"b":[0,0,0,1],"w":1,"s":10}],[27,8,{"s":10}],[27,9,{"s":10}],[27,10,{"s":10}],[27,11,{"b":[0,1,0,0],"w":1,"s":10}],[28,1,{"b":[0,0,0,1],"s":10}],[28,2,{"s":10}],[28,3,{"s":10}],[28,4,{"b":[0,1,0,0],"s":10}],[28,5,{"s":10}],[28,6,{"s":10}],[28,7,{"b":[0,0,0,1],"s":10}],[28,8,{"s":10}],[28,9,{"s":10}],[28,10,{"s":10}],[28,11,{"b":[0,1,0,0],"w":1,"s":10}],[29,1,{"b":[0,0,1,1],"s":10}],[29,2,{"b":[0,0,1,0],"s":10}],[29,3,{"b":[0,0,1,0],"s":10}],[29,4,{"b":[0,1,1,0],"s":10}],[29,5,{"s":10}],[29,6,{"s":10}],[29,7,{"b":[0,0,1,1],"s":10}],[29,8,{"b":[0,0,1,0],"s":10}],[29,9,{"b":[0,0,1,0],"s":10}],[29,10,{"b":[0,0,1,0],"s":10}],[29,11,{"b":[0,1,1,0],"s":10}],[30,1,{"s":10}],[30,2,{"s":10}],[30,3,{"s":10}],[30,4,{"s":10}],[30,5,{"s":10}],[30,6,{"s":10}],[30,7,{"s":10}],[30,8,{"s":10}],[30,9,{"s":10}],[30,10,{"s":10}],[30,11,{"s":10}],[31,1,{"f":"BFBFBF","w":1,"s":10}],[31,2,{"f":"BFBFBF","w":1,"s":10}],[31,3,{"f":"BFBFBF","w":1,"s":10}],[31,4,{"f":"BFBFBF","w":1,"s":10}],[31,5,{"f":"BFBFBF","w":1,"s":10}],[31,6,{"f":"BFBFBF","w":1,"s":10}],[31,7,{"f":"BFBFBF","w":1,"s":10}],[31,8,{"f":"BFBFBF","s":10}],[31,9,{"f":"BFBFBF","s":10}],[31,10,{"f":"BFBFBF","w":1,"s":10}],[31,11,{"f":"BFBFBF","w":1,"s":10}],[32,1,{"s":10}],[32,2,{"s":10}],[32,3,{"s":10}],[32,4,{"s":10}],[32,5,{"s":10}],[32,6,{"s":10}],[32,7,{"s":10}],[32,8,{"s":10}],[32,9,{"s":10}],[32,10,{"s":10}],[32,11,{"s":10}],[33,1,{"t":"CONFORMITE MISE A QUAI","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[33,2,{"b":[1,1,1,0],"s":10}],[33,3,{"w":1,"a":"c"}],[33,4,{"w":1}],[33,5,{"w":1}],[33,6,{"w":1,"s":10,"a":"c"}],[33,7,{"w":1}],[33,8,{"w":1}],[33,9,{"w":1}],[33,10,{"w":1}],[33,11,{"s":10}],[34,1,{"t":"OUI","f":"D9D9D9","b":[1,1,1,1],"w":1,"a":"c"}],[34,2,{"t":"NON","f":"D9D9D9","b":[1,1,1,1],"w":1,"a":"c"}],[34,3,{"w":1,"a":"c"}],[34,4,{"w":1}],[34,5,{"w":1}],[34,6,{"w":1,"s":10,"a":"c"}],[34,7,{"w":1,"s":12}],[34,8,{"w":1,"s":10,"a":"c"}],[34,9,{"w":1,"s":10,"a":"c"}],[34,10,{"w":1,"s":10,"a":"c"}],[34,11,{"s":10}],[35,1,{"b":[1,1,1,1],"w":1}],[35,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[35,3,{"t":"Conducteur présent pour le chargement","b":[1,1,1,0],"w":1}],[35,4,{"b":[1,0,1,0],"s":10}],[35,5,{"b":[1,0,1,0],"s":10}],[35,6,{"b":[1,0,1,0],"s":10}],[35,7,{"b":[1,0,1,0],"s":10}],[35,8,{"b":[1,0,1,0],"s":10}],[35,9,{"b":[1,0,1,0],"s":10}],[35,10,{"b":[1,1,1,0],"s":10}],[35,11,{"w":1}],[36,1,{"b":[1,1,1,1],"w":1}],[36,2,{"b":[1,1,1,1],"w":1}],[36,3,{"t":"Conducteur avec chaussure de sécurité et gilet haute visibilité","b":[1,1,1,0],"w":1}],[36,4,{"b":[1,0,1,0],"s":10}],[36,5,{"b":[1,0,1,0],"s":10}],[36,6,{"b":[1,0,1,0],"s":10}],[36,7,{"b":[1,0,1,0],"s":10}],[36,8,{"b":[1,0,1,0],"s":10}],[36,9,{"b":[1,0,1,0],"s":10}],[36,10,{"b":[1,1,1,0],"s":10}],[36,11,{"w":1,"s":10,"a":"c"}],[37,1,{"b":[1,1,1,1],"w":1}],[37,2,{"b":[1,1,1,1],"w":1}],[37,3,{"t":"Freins remorque et tracteur mis par le conducteur","b":[1,1,1,0],"w":1}],[37,4,{"b":[1,0,1,0],"s":10}],[37,5,{"b":[1,0,1,0],"s":10}],[37,6,{"b":[1,0,1,0],"s":10}],[37,7,{"b":[1,0,1,0],"s":10}],[37,8,{"b":[1,0,1,0],"s":10}],[37,9,{"b":[1,0,1,0],"s":10}],[37,10,{"b":[1,1,1,0],"s":10}],[37,11,{"w":1}],[38,1,{"b":[1,1,1,1],"w":1}],[38,2,{"b":[1,1,1,1],"w":1}],[38,3,{"t":"Clé du tracteur accrochée au quai","b":[1,1,1,0],"w":1}],[38,4,{"b":[1,0,1,0],"s":10}],[38,5,{"b":[1,0,1,0],"s":10}],[38,6,{"b":[1,0,1,0],"s":10}],[38,7,{"b":[1,0,1,0],"s":10}],[38,8,{"b":[1,0,1,0],"s":10}],[38,9,{"b":[1,0,1,0],"s":10}],[38,10,{"b":[1,1,1,0],"s":10}],[38,11,{"w":1}],[39,1,{"b":[1,1,1,1],"w":1}],[39,2,{"b":[1,1,1,1],"w":1}],[39,3,{"t":"Remorque bien positionnée, pont niveleur qui recouvre suffisament la remorque","b":[1,1,1,0],"w":1}],[39,4,{"b":[1,0,1,0],"s":10}],[39,5,{"b":[1,0,1,0],"s":10}],[39,6,{"b":[1,0,1,0],"s":10}],[39,7,{"b":[1,0,1,0],"s":10}],[39,8,{"b":[1,0,1,0],"s":10}],[39,9,{"b":[1,0,1,0],"s":10}],[39,10,{"b":[1,1,1,0],"s":10}],[39,11,{"w":1}],[40,1,{"b":[1,1,1,1],"w":1}],[40,2,{"b":[1,1,1,1],"w":1}],[40,3,{"t":"Cale de quai positionnée sous l'essieu central","b":[1,1,1,0],"w":1}],[40,4,{"b":[1,0,1,0],"s":10}],[40,5,{"b":[1,0,1,0],"s":10}],[40,6,{"b":[1,0,1,0],"s":10}],[40,7,{"b":[1,0,1,0],"s":10}],[40,8,{"b":[1,0,1,0],"s":10}],[40,9,{"b":[1,0,1,0],"s":10}],[40,10,{"b":[1,1,1,0],"s":10}],[40,11,{"w":1}],[41,1,{"b":[1,1,1,1],"w":1}],[41,2,{"b":[1,1,1,1],"w":1}],[41,3,{"t":"Pour les remorques déletelées, présence du tréteau de quai","b":[1,1,1,0],"w":1}],[41,4,{"b":[1,0,1,0],"s":10}],[41,5,{"b":[1,0,1,0],"s":10}],[41,6,{"b":[1,0,1,0],"s":10}],[41,7,{"b":[1,0,1,0],"s":10}],[41,8,{"b":[1,0,1,0],"s":10}],[41,9,{"b":[1,0,1,0],"s":10}],[41,10,{"b":[1,1,1,0],"s":10}],[41,11,{"w":1}],[42,1,{"b":[1,1,1,1],"w":1}],[42,2,{"b":[1,1,1,1],"w":1}],[42,3,{"t":"Autre :","b":[1,1,1,0],"w":1}],[42,4,{"b":[1,0,1,0],"s":10}],[42,5,{"b":[1,0,1,0],"s":10}],[42,6,{"b":[1,0,1,0],"s":10}],[42,7,{"b":[1,0,1,0],"s":10}],[42,8,{"b":[1,0,1,0],"s":10}],[42,9,{"b":[1,0,1,0],"s":10}],[42,10,{"b":[1,1,1,0],"s":10}],[42,11,{"w":1}],[43,1,{"s":10}],[43,2,{"s":10}],[43,3,{"s":10}],[43,4,{"s":10}],[43,5,{"s":10}],[43,6,{"s":10}],[43,7,{"s":10}],[43,8,{"s":10}],[43,9,{"s":10}],[43,10,{"s":10}],[43,11,{"s":10}],[44,1,{"f":"BFBFBF","w":1,"s":10}],[44,2,{"f":"BFBFBF","w":1,"s":10}],[44,3,{"f":"BFBFBF","w":1,"s":10}],[44,4,{"f":"BFBFBF","w":1,"s":10}],[44,5,{"f":"BFBFBF","w":1,"s":10}],[44,6,{"f":"BFBFBF","w":1,"s":10}],[44,7,{"f":"BFBFBF","w":1,"s":10}],[44,8,{"f":"BFBFBF","s":10}],[44,9,{"f":"BFBFBF","s":10}],[44,10,{"f":"BFBFBF","w":1,"s":10}],[44,11,{"f":"BFBFBF","w":1,"s":10}],[45,1,{"s":10}],[45,2,{"s":10}],[45,3,{"s":10}],[45,4,{"s":10}],[45,5,{"s":10}],[45,6,{"s":10}],[45,7,{"s":10}],[45,8,{"s":10}],[45,9,{"s":10}],[45,10,{"s":10}],[45,11,{"s":10}],[46,1,{"t":"CONFORMITE DU VEHICULE","f":"D9D9D9","b":[1,1,1,1],"w":1,"a":"c"}],[46,2,{"b":[1,0,0,0],"s":10}],[46,3,{"b":[1,0,0,0],"s":10}],[46,4,{"b":[1,1,0,0],"s":10}],[46,5,{"t":"OUI","f":"D9D9D9","b":[1,1,1,1],"w":1,"a":"c"}],[46,6,{"b":[1,1,1,0],"s":10}],[46,7,{"t":"NON","f":"D9D9D9","b":[1,1,1,1],"w":1,"a":"c"}],[46,8,{"t":"Précisez :","w":1,"s":12}],[46,9,{"w":1,"s":12,"a":"r"}],[46,10,{"s":10}],[46,11,{"s":10}],[47,1,{"b":[0,0,1,1],"s":10}],[47,2,{"b":[0,0,1,0],"s":10}],[47,3,{"b":[0,0,1,0],"s":10}],[47,4,{"b":[0,1,1,0],"s":10}],[47,5,{"b":[1,1,1,1],"w":1,"a":"c"}],[47,6,{"b":[1,1,1,0],"s":10}],[47,7,{"b":[1,1,1,1],"w":1}],[47,8,{"s":10}],[47,9,{"s":10}],[47,10,{"t":"Bâche percée","b":[1,1,1,1],"w":1,"s":10}],[47,11,{"b":[1,1,1,0],"s":10}],[48,1,{"t":"L'état de la remorque ne doit présenter aucun risque pour la marchandise transportée. Le sol de la remorque doit être propre, le plafond étanche et absence d'éléments pouvant endommager les emballages. La remorque ne doit présenter aucun trou dans le plancher, paroi, plafond.\nLa remorque doit disposer de son câble de tir, des ridelles et planches sur les parois pour les bâchées, de la barre de séparation pour les colivraisons.","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[48,2,{"b":[1,0,0,0],"s":10}],[48,3,{"b":[1,0,0,0],"s":10}],[48,4,{"b":[1,1,0,0],"s":10}],[48,5,{"w":1,"s":10,"a":"c"}],[48,6,{"s":10}],[48,7,{"s":10}],[48,8,{"s":10}],[48,9,{"s":10}],[48,10,{"t":"Odeur suspecte d'humidité","b":[1,1,1,1],"w":1,"s":10}],[48,11,{"b":[1,1,1,0],"s":10}],[49,1,{"b":[0,0,0,1],"s":10}],[49,2,{"s":10}],[49,3,{"s":10}],[49,4,{"b":[0,1,0,0],"s":10}],[49,5,{"w":1,"s":10,"a":"c"}],[49,6,{"s":10}],[49,7,{"s":10}],[49,8,{"s":10}],[49,9,{"s":10}],[49,10,{"t":"Plancher détérioré","b":[1,1,1,1],"w":1,"s":10}],[49,11,{"b":[1,1,1,1],"w":1,"s":10}],[50,1,{"b":[0,0,0,1],"s":10}],[50,2,{"s":10}],[50,3,{"s":10}],[50,4,{"b":[0,1,0,0],"s":10}],[50,5,{"w":1,"s":10,"a":"c"}],[50,6,{"s":10}],[50,7,{"s":10}],[50,8,{"s":10}],[50,9,{"s":10}],[50,10,{"t":"Manque de propreté","b":[1,1,1,1],"w":1,"s":10}],[50,11,{"b":[1,1,1,1],"w":1,"s":10}],[51,1,{"b":[0,0,0,1],"s":10}],[51,2,{"s":10}],[51,3,{"s":10}],[51,4,{"b":[0,1,0,0],"s":10}],[51,5,{"w":1,"s":10,"a":"c"}],[51,6,{"s":10}],[51,7,{"s":10}],[51,8,{"s":10}],[51,9,{"s":10}],[51,10,{"t":"Absence de ridelles","b":[1,1,1,1],"w":1,"s":10}],[51,11,{"b":[1,1,1,1],"w":1,"s":10}],[52,1,{"b":[0,0,0,1],"s":10}],[52,2,{"s":10}],[52,3,{"s":10}],[52,4,{"b":[0,1,0,0],"s":10}],[52,5,{"w":1,"s":10,"a":"c"}],[52,6,{"s":10}],[52,7,{"s":10}],[52,8,{"s":10}],[52,9,{"s":10}],[52,10,{"t":"Présence de nuisibles","b":[1,1,0,1],"w":1,"s":10}],[52,11,{"b":[1,1,0,1],"w":1,"s":10}],[53,1,{"b":[0,0,0,1],"s":10}],[53,2,{"s":10}],[53,3,{"s":10}],[53,4,{"b":[0,1,0,0],"s":10}],[53,5,{"w":1,"s":10,"a":"c"}],[53,6,{"s":10}],[53,7,{"s":10}],[53,8,{"s":10}],[53,9,{"s":10}],[53,10,{"t":"Autres, précisez :","b":[1,0,0,1],"w":1,"s":10}],[53,11,{"b":[1,1,0,0],"w":1,"s":10}],[54,1,{"b":[0,0,0,1],"s":10}],[54,2,{"s":10}],[54,3,{"s":10}],[54,4,{"b":[0,1,0,0],"s":10}],[54,5,{"w":1,"s":10,"a":"c"}],[54,6,{"s":10}],[54,7,{"s":10}],[54,8,{"s":10}],[54,9,{"s":10}],[54,10,{"b":[0,0,0,1],"w":1,"s":10}],[54,11,{"b":[0,1,0,0],"w":1}],[55,1,{"b":[0,0,1,1],"s":10}],[55,2,{"b":[0,0,1,0],"s":10}],[55,3,{"b":[0,0,1,0],"s":10}],[55,4,{"b":[0,1,1,0],"s":10}],[55,5,{"w":1,"s":10,"a":"c"}],[55,6,{"s":10}],[55,7,{"s":10}],[55,8,{"s":10}],[55,9,{"s":10}],[55,10,{"b":[0,0,1,1],"w":1,"s":10}],[55,11,{"b":[0,1,1,0],"w":1,"s":10}],[56,1,{"w":1,"s":12}],[56,2,{"w":1,"s":12}],[56,3,{"w":1,"s":12}],[56,4,{"w":1,"s":12}],[56,5,{"w":1,"s":12}],[56,6,{"w":1,"s":10}],[56,7,{"w":1}],[56,8,{"w":1}],[56,9,{"w":1}],[56,10,{"w":1}],[56,11,{"w":1}],[57,1,{"t":"Si remorque non conforme \nmais absence de risques pour la sécurité des personnes :","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10}],[57,2,{"b":[1,0,1,0],"s":10}],[57,3,{"b":[1,1,1,0],"s":10}],[57,4,{"t":"CHARGEMENT","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":9}],[57,5,{"b":[1,1,1,1],"w":1,"s":9,"a":"c"}],[57,6,{"b":[1,0,1,0],"s":10}],[57,7,{"b":[1,1,1,0],"s":10}],[57,8,{"t":"Dans tous les cas, si REFUS DE CHARGEMENT, noter sur la lettre de voiture, \"refus de chargement pour cause de\" (noter le motif) et garder un exemplaire de la lettre de voiture dans le dossier.","b":[0,0,0,1],"w":1,"s":10,"a":"c"}],[57,9,{"s":10}],[57,10,{"s":10}],[57,11,{"s":10}],[58,1,{"t":"ACCORD ECRIT \nDU CLIENT","b":[1,1,1,1],"w":1,"s":9}],[58,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[58,3,{"b":[1,1,1,0],"s":10}],[58,4,{"t":"NOM DU CLIENT QUI DONNE L'ACCORD","b":[1,1,1,1],"w":1,"s":9}],[58,5,{"b":[1,1,1,1],"w":1,"s":9,"a":"c"}],[58,6,{"b":[1,0,1,0],"s":10}],[58,7,{"b":[1,1,1,0],"s":10}],[58,8,{"b":[0,0,0,1],"s":10}],[58,9,{"s":10}],[58,10,{"s":10}],[58,11,{"s":10}],[59,1,{"s":10}],[59,2,{"s":10}],[59,3,{"s":10}],[59,4,{"s":10}],[59,5,{"s":10}],[59,6,{"s":10}],[59,7,{"s":10}],[59,8,{"s":10}],[59,9,{"s":10}],[59,10,{"s":10}],[59,11,{"s":10}],[60,1,{"f":"BFBFBF","w":1,"s":10}],[60,2,{"f":"BFBFBF","w":1,"s":10}],[60,3,{"f":"BFBFBF","w":1,"s":10}],[60,4,{"f":"BFBFBF","w":1,"s":10}],[60,5,{"f":"BFBFBF","w":1,"s":10}],[60,6,{"f":"BFBFBF","w":1,"s":10}],[60,7,{"f":"BFBFBF","w":1,"s":10}],[60,8,{"f":"BFBFBF","s":10}],[60,9,{"f":"BFBFBF","s":10}],[60,10,{"f":"BFBFBF","w":1,"s":10}],[60,11,{"f":"BFBFBF","w":1,"s":10}],[61,1,{"s":10}],[61,2,{"s":10}],[61,3,{"s":10}],[61,4,{"s":10}],[61,5,{"s":10}],[61,6,{"s":10}],[61,7,{"s":10}],[61,8,{"s":10}],[61,9,{"s":10}],[61,10,{"s":10}],[61,11,{"s":10}],[62,1,{"t":"Reste à quai","f":"D9D9D9","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[62,2,{"b":[1,1,0,0],"s":10}],[62,3,{"b":[1,0,1,1],"w":1,"s":10}],[62,4,{"b":[1,1,1,0],"w":1,"s":10}],[62,5,{"s":10}],[62,6,{"t":"Mise en place des barres ou sangles d'arrimage à l'arrière de la remorque à la fin du chargement","f":"D9D9D9","b":[1,0,1,1],"w":1,"s":10}],[62,7,{"b":[1,0,1,0],"s":10}],[62,8,{"b":[1,0,1,0],"s":10}],[62,9,{"b":[1,0,1,0],"s":10}],[62,10,{"b":[1,0,1,0],"s":10}],[62,11,{"b":[1,1,1,0],"w":1}],[63,1,{"b":[0,0,1,1],"s":10}],[63,2,{"b":[0,1,1,0],"s":10}],[63,3,{"t":"Nbr palettes :","b":[1,1,1,1],"w":1,"s":10}],[63,4,{"b":[1,1,1,1],"w":1,"s":10}],[63,5,{"s":10}],[63,6,{"t":"Plombage du camion","b":[1,0,0,1],"w":1,"s":10}],[63,7,{"b":[1,0,0,0],"w":1,"s":10}],[63,8,{"t":"Si oui, n° de PLOMB :","b":[1,0,0,1],"w":1,"s":10}],[63,9,{"b":[1,0,0,0],"w":1,"s":10}],[63,10,{"b":[1,0,0,0],"w":1,"s":10}],[63,11,{"b":[1,1,0,0],"w":1}],[64,1,{"s":10}],[64,2,{"s":10}],[64,3,{"s":10}],[64,4,{"s":10}],[64,5,{"s":10}],[64,6,{"b":[0,0,1,1],"w":1,"s":10}],[64,7,{"b":[0,0,1,0],"w":1,"s":10}],[64,8,{"b":[0,0,1,1],"w":1,"s":10}],[64,9,{"b":[0,0,1,0],"w":1,"s":10}],[64,10,{"b":[0,0,1,0],"w":1,"s":10}],[64,11,{"b":[0,1,1,0],"w":1,"s":10}]],"merges":[[5,1,5,4],[12,2,13,2],[3,1,4,11],[18,2,19,2],[16,10,17,11],[42,3,42,10],[48,1,55,4],[16,9,17,9],[16,1,17,1],[21,1,22,2],[16,3,17,3],[13,10,13,11],[57,1,57,3],[14,2,15,2],[58,2,58,3],[8,3,9,4],[21,6,21,7],[35,3,35,10],[12,1,13,1],[12,3,13,3],[22,6,24,11],[8,9,8,11],[8,5,9,7],[57,5,57,7],[46,1,47,4],[16,4,17,7],[62,1,63,2],[41,3,41,10],[20,9,20,11],[18,1,19,1],[6,7,6,11],[12,4,13,7],[14,1,15,1],[40,3,40,10],[14,10,15,11],[14,9,15,9],[57,8,58,11],[62,6,62,10],[47,5,47,6],[18,4,19,7],[6,1,6,4],[46,5,46,6],[33,1,33,2],[36,3,36,10],[58,5,58,7],[5,7,5,11],[11,4,11,7],[23,1,24,4],[47,10,47,11],[21,3,22,5],[39,3,39,10],[14,4,15,7],[26,7,26,11],[26,1,26,4],[38,3,38,10],[16,2,17,2],[37,3,37,10],[18,3,19,3],[27,1,29,4],[14,3,15,3],[48,10,48,11]]},"inn":{"r1":1,"c1":1,"nr":66,"nc":8,"colW":[114,110,101,94,124,91,89,54],"rowH":[41,13,33,18,18,20,18,18,17,17,17,20,20,17,17,20,20,19,40,18,20,23,23,23,23,23,23,9,6,10,19,22,20,24,24,24,24,24,24,24,9,6,10,21,21,21,24,24,24,24,24,7,7,7,21,13,20,13,20,13,20,13,20,20,20,20],"cells":[[1,1,{"t":"NUMERO REFLEX (ASN)","b":[1,0,1,1],"w":1,"s":10}],[1,2,{"b":[1,0,0,0],"s":10}],[1,3,{"b":[1,1,1,1],"s":10,"a":"c"}],[1,4,{"b":[1,0,0,0],"s":10}],[1,5,{"b":[1,0,0,0],"s":10}],[1,6,{"b":[1,1,0,0],"s":10}],[1,7,{"t":"Type de produit :","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[1,8,{"b":[1,1,1,0],"s":10}],[2,1,{"b":[0,0,1,1],"s":10}],[2,2,{"b":[0,0,1,0],"s":10}],[2,3,{"b":[0,0,1,1],"s":10}],[2,4,{"b":[0,0,1,0],"s":10}],[2,5,{"b":[0,0,1,0],"s":10}],[2,6,{"b":[0,1,1,0],"s":10}],[2,7,{"t":"Brun","b":[1,0,1,1],"s":10,"a":"c"}],[2,8,{"t":" Blanc","b":[1,1,1,0],"s":10,"a":"c"}],[3,1,{"t":"TRANSPORT","b":[1,1,1,1],"w":1,"s":10}],[3,2,{"b":[1,1,0,0],"s":10}],[3,3,{"b":[1,1,1,1],"s":10,"a":"c"}],[3,4,{"b":[1,0,0,0],"s":10}],[3,5,{"b":[1,0,0,0],"s":10}],[3,6,{"b":[1,1,0,0],"s":10}],[3,7,{"b":[0,0,1,1],"s":10}],[3,8,{"b":[0,1,1,0],"s":10}],[4,1,{"b":[0,0,0,1],"s":10}],[4,2,{"b":[0,1,0,0],"s":10}],[4,3,{"b":[0,0,0,1],"s":10}],[4,4,{"s":10}],[4,5,{"s":10}],[4,6,{"b":[0,1,0,0],"s":10}],[4,7,{"t":"Container :","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[4,8,{"b":[1,1,0,0],"s":10}],[5,1,{"b":[0,0,1,1],"s":10}],[5,2,{"b":[0,1,1,0],"s":10}],[5,3,{"b":[0,0,1,1],"s":10}],[5,4,{"b":[0,0,1,0],"s":10}],[5,5,{"b":[0,0,1,0],"s":10}],[5,6,{"b":[0,1,1,0],"s":10}],[5,7,{"b":[0,0,1,1],"s":10}],[5,8,{"b":[0,1,1,0],"s":10}],[6,1,{"w":1,"s":10}],[6,2,{"w":1,"s":10}],[6,3,{"s":10,"a":"c"}],[6,4,{"s":10,"a":"c"}],[6,5,{"s":10,"a":"c"}],[6,6,{"s":10,"a":"c"}],[6,7,{"t":"Vrac","b":[1,0,0,1],"s":10,"a":"c"}],[6,8,{"t":"Masse","b":[1,1,0,0],"s":10,"a":"c"}],[7,1,{"t":"Informations générale","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[7,2,{"t":"Cellule/Porte","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[7,3,{"t":"DATE","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[7,4,{"t":"Heure RDV","b":[1,1,1,1],"s":10,"a":"c"}],[7,5,{"t":"Heure réel","b":[1,1,1,1],"s":10,"a":"c"}],[7,6,{"t":"Heure départ","b":[1,1,1,1],"s":10,"a":"c"}],[7,7,{"b":[0,0,0,1],"s":10}],[7,8,{"b":[0,1,0,0],"s":10}],[8,1,{"b":[0,1,0,1],"s":10}],[8,2,{"b":[0,1,1,1],"s":10}],[8,3,{"b":[0,1,1,1],"s":10}],[8,4,{"b":[0,1,1,1],"s":10}],[8,5,{"b":[0,1,1,1],"s":10}],[8,6,{"b":[0,1,1,1],"s":10}],[8,7,{"t":"       Top loading, quantité produit couché : …......","b":[0,1,0,1],"s":10}],[8,8,{"b":[0,1,0,0],"s":10}],[9,1,{"b":[0,1,0,1],"s":10}],[9,2,{"b":[0,1,0,1],"w":1,"s":10}],[9,3,{"b":[0,1,0,0],"s":10,"a":"c"}],[9,4,{"t":"… H …","b":[1,1,1,1],"s":10,"a":"c"}],[9,5,{"t":"… H …","b":[1,1,1,1],"s":10,"a":"c"}],[9,6,{"t":"… H …","b":[1,1,1,1],"s":10,"a":"c"}],[9,7,{"b":[0,0,0,1],"s":10}],[9,8,{"b":[0,1,0,0],"s":10}],[10,1,{"b":[0,1,0,1],"s":10}],[10,2,{"b":[0,1,0,1],"w":1,"s":10}],[10,3,{"b":[0,1,0,0],"s":10,"a":"c"}],[10,4,{"b":[0,1,0,1],"s":10}],[10,5,{"b":[0,1,0,1],"s":10}],[10,6,{"b":[0,1,0,1],"s":10}],[10,7,{"b":[0,0,0,1],"s":10}],[10,8,{"b":[0,1,0,0],"s":10}],[11,1,{"b":[0,1,1,1],"s":10}],[11,2,{"b":[0,1,1,1],"w":1,"s":10}],[11,3,{"b":[0,1,1,0],"s":10,"a":"c"}],[11,4,{"b":[0,1,1,1],"s":10}],[11,5,{"b":[0,1,1,1],"s":10}],[11,6,{"b":[0,1,1,1],"s":10}],[11,7,{"b":[0,0,1,1],"s":10}],[11,8,{"b":[0,1,1,0],"s":10}],[12,1,{"w":1,"s":10}],[12,2,{"w":1,"s":10}],[12,3,{"s":10,"a":"c"}],[12,4,{"s":10,"a":"c"}],[12,5,{"s":10,"a":"c"}],[12,6,{"s":10,"a":"c"}],[12,7,{"s":10}],[12,8,{"s":10}],[13,1,{"t":"Références produits","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[13,2,{"b":[1,0,1,0],"s":10}],[13,3,{"b":[1,0,1,0],"s":10}],[13,4,{"b":[1,0,1,0],"s":10}],[13,5,{"b":[1,0,1,0],"s":10}],[13,6,{"b":[1,0,1,0],"s":10}],[13,7,{"b":[1,0,1,0],"s":10}],[13,8,{"b":[1,1,1,0],"s":10}],[14,1,{"b":[1,1,1,1],"s":10,"a":"c"}],[14,2,{"b":[1,0,0,0],"s":10}],[14,3,{"b":[1,0,0,0],"s":10}],[14,4,{"b":[1,0,0,0],"s":10}],[14,5,{"b":[1,0,0,0],"s":10}],[14,6,{"b":[1,0,0,0],"s":10}],[14,7,{"b":[1,0,0,0],"s":10}],[14,8,{"b":[1,1,0,0],"s":10}],[15,1,{"b":[0,0,1,1],"s":10}],[15,2,{"b":[0,0,1,0],"s":10}],[15,3,{"b":[0,0,1,0],"s":10}],[15,4,{"b":[0,0,1,0],"s":10}],[15,5,{"b":[0,0,1,0],"s":10}],[15,6,{"b":[0,0,1,0],"s":10}],[15,7,{"b":[0,0,1,0],"s":10}],[15,8,{"b":[0,1,1,0],"s":10}],[16,1,{"s":10}],[16,2,{"s":10}],[16,3,{"s":10}],[16,4,{"s":10}],[16,5,{"s":10}],[16,6,{"s":10}],[16,7,{"s":10}],[16,8,{"s":10}],[17,1,{"t":"Adressage réalisé pour le stockage en masse (blanc)","b":[1,1,1,1],"w":1,"s":10}],[17,2,{"b":[1,1,0,0],"s":10}],[17,3,{"b":[1,1,1,1],"s":10,"a":"c"}],[17,4,{"s":10}],[17,5,{"t":"N° de plomb \nannoncé","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[17,6,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[17,7,{"b":[1,0,0,0],"s":10}],[17,8,{"b":[1,1,0,0],"s":10}],[18,1,{"b":[0,0,1,1],"s":10}],[18,2,{"b":[0,1,1,0],"s":10}],[18,3,{"b":[0,1,1,1],"s":10}],[18,4,{"s":10}],[18,5,{"b":[0,1,1,1],"s":10}],[18,6,{"b":[0,0,1,1],"s":10}],[18,7,{"b":[0,0,1,0],"s":10}],[18,8,{"b":[0,1,1,0],"s":10}],[19,1,{"w":1,"s":10}],[19,2,{"w":1,"s":10}],[19,3,{"s":10,"a":"c"}],[19,4,{"s":10}],[19,5,{"w":1,"s":10,"a":"c"}],[19,6,{"w":1,"s":10,"a":"c"}],[19,7,{"w":1,"s":10,"a":"c"}],[19,8,{"w":1,"s":10,"a":"c"}],[20,1,{"t":"Nombre de colis","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[20,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[20,3,{"b":[1,1,0,0],"s":10}],[20,4,{"b":[0,1,0,1],"w":1,"s":10,"a":"c"}],[20,5,{"t":"N° de plomb \nà l'arrivée","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[20,6,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[20,7,{"b":[1,0,0,0],"s":10}],[20,8,{"b":[1,1,0,0],"s":10}],[21,1,{"b":[0,1,1,1],"s":10}],[21,2,{"b":[0,0,1,1],"s":10}],[21,3,{"b":[0,1,1,0],"s":10}],[21,4,{"b":[0,1,0,1],"s":10}],[21,5,{"b":[0,1,1,1],"s":10}],[21,6,{"b":[0,0,1,1],"s":10}],[21,7,{"b":[0,0,1,0],"s":10}],[21,8,{"b":[0,1,1,0],"s":10}],[22,1,{"t":"Nombre de référence","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[22,2,{"b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[22,3,{"b":[1,1,0,0],"s":10}],[22,4,{"s":10}],[22,5,{"w":1,"s":10,"a":"c"}],[22,6,{"w":1,"s":10,"a":"c"}],[22,7,{"w":1,"s":10,"a":"c"}],[22,8,{"w":1,"s":10,"a":"c"}],[23,1,{"b":[0,1,1,1],"s":10}],[23,2,{"b":[0,0,1,1],"s":10}],[23,3,{"b":[0,1,1,0],"s":10}],[23,4,{"s":10}],[23,5,{"s":10}],[23,6,{"s":10}],[23,7,{"s":10}],[23,8,{"s":10}],[24,1,{"s":10}],[24,2,{"s":10}],[24,3,{"w":1,"s":10}],[24,4,{"w":1,"s":10}],[24,5,{"t":"Traitement","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[24,6,{"b":[1,0,1,0],"s":10}],[24,7,{"b":[1,1,1,0],"s":10}],[24,8,{"s":10}],[25,1,{"t":"Tâches","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[25,2,{"t":"Nom","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[25,3,{"b":[1,0,1,0],"s":10}],[25,4,{"b":[1,1,1,0],"s":10}],[25,5,{"t":"Heure début","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[25,6,{"t":"Heure de fin","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[25,7,{"b":[1,1,1,0],"s":10}],[25,8,{"w":1,"s":10,"a":"c"}],[26,1,{"t":"Déchargement","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[26,2,{"b":[1,1,1,1],"s":10,"a":"c"}],[26,3,{"b":[1,0,0,0],"s":10}],[26,4,{"b":[1,1,0,0],"s":10}],[26,5,{"b":[1,1,1,1],"s":10,"a":"c"}],[26,6,{"b":[1,1,1,1],"s":10,"a":"c"}],[26,7,{"b":[1,1,0,0],"s":10}],[26,8,{"w":1,"s":10,"a":"c"}],[27,1,{"b":[0,1,0,1],"s":10}],[27,2,{"b":[0,0,0,1],"s":10}],[27,3,{"s":10}],[27,4,{"b":[0,1,0,0],"s":10}],[27,5,{"b":[0,1,0,1],"s":10}],[27,6,{"b":[0,0,0,1],"s":10}],[27,7,{"b":[0,1,0,0],"s":10}],[27,8,{"w":1,"s":10,"a":"c"}],[28,1,{"b":[0,1,0,1],"s":10}],[28,2,{"b":[0,0,0,1],"s":10}],[28,3,{"s":10}],[28,4,{"b":[0,1,0,0],"s":10}],[28,5,{"b":[0,1,0,1],"s":10}],[28,6,{"b":[0,0,0,1],"s":10}],[28,7,{"b":[0,1,0,0],"s":10}],[28,8,{"w":1,"s":10,"a":"c"}],[29,1,{"b":[0,1,1,1],"s":10}],[29,2,{"b":[0,0,1,1],"s":10}],[29,3,{"b":[0,0,1,0],"s":10}],[29,4,{"b":[0,1,1,0],"s":10}],[29,5,{"b":[0,1,1,1],"s":10}],[29,6,{"b":[0,0,1,1],"s":10}],[29,7,{"b":[0,1,1,0],"s":10}],[29,8,{"s":10}],[30,1,{"t":"Etetage","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[30,2,{"b":[1,1,1,1],"s":10,"a":"c"}],[30,3,{"b":[1,0,0,0],"s":10}],[30,4,{"b":[1,1,0,0],"s":10}],[30,5,{"b":[1,1,1,1],"s":10,"a":"c"}],[30,6,{"b":[1,1,1,1],"s":10,"a":"c"}],[30,7,{"b":[1,1,0,0],"s":10}],[30,8,{"w":1,"s":10,"a":"c"}],[31,1,{"b":[0,1,1,1],"s":10}],[31,2,{"b":[0,0,1,1],"s":10}],[31,3,{"b":[0,0,1,0],"s":10}],[31,4,{"b":[0,1,1,0],"s":10}],[31,5,{"b":[0,1,1,1],"s":10}],[31,6,{"b":[0,0,1,1],"s":10}],[31,7,{"b":[0,1,1,0],"s":10}],[31,8,{"w":1,"s":10,"a":"c"}],[32,1,{"t":"Contrôle","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[32,2,{"b":[1,1,1,1],"s":10,"a":"c"}],[32,3,{"b":[1,0,0,0],"s":10}],[32,4,{"b":[1,1,0,0],"s":10}],[32,5,{"b":[1,1,1,1],"s":10,"a":"c"}],[32,6,{"b":[1,1,1,1],"s":10,"a":"c"}],[32,7,{"b":[1,1,0,0],"s":10}],[32,8,{"s":10}],[33,1,{"b":[0,1,1,1],"s":10}],[33,2,{"b":[0,0,1,1],"s":10}],[33,3,{"b":[0,0,1,0],"s":10}],[33,4,{"b":[0,1,1,0],"s":10}],[33,5,{"b":[0,1,1,1],"s":10}],[33,6,{"b":[0,0,1,1],"s":10}],[33,7,{"b":[0,1,1,0],"s":10}],[33,8,{"s":10}],[34,1,{"w":1}],[34,2,{"w":1}],[34,3,{"w":1}],[34,4,{"w":1}],[34,5,{"w":1}],[34,6,{"w":1}],[34,7,{"w":1}],[34,8,{"w":1}],[35,1,{"f":"D9D9D9","w":1}],[35,2,{"f":"D9D9D9","w":1}],[35,3,{"f":"D9D9D9","w":1}],[35,4,{"f":"D9D9D9","w":1}],[35,5,{"f":"D9D9D9","w":1}],[35,6,{"f":"D9D9D9","w":1}],[35,7,{"f":"D9D9D9","w":1}],[35,8,{"f":"D9D9D9","w":1}],[36,1,{"w":1,"a":"c"}],[36,2,{"w":1,"a":"c"}],[36,3,{"w":1,"a":"c"}],[36,4,{"w":1,"s":10,"a":"c"}],[36,5,{"w":1,"a":"r"}],[36,6,{"w":1}],[36,7,{"w":1,"s":10}],[36,8,{"w":1,"s":10}],[37,1,{"t":"CONFORMITE MISE A QUAI\n","b":[1,1,1,1],"w":1,"a":"c"}],[37,2,{"b":[1,0,1,0],"s":10}],[37,3,{"b":[1,0,1,0],"s":10}],[37,4,{"b":[1,0,1,0],"s":10}],[37,5,{"b":[1,1,1,0],"s":10}],[37,6,{"t":"Oui","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[37,7,{"t":"Non","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[37,8,{"w":1}],[38,1,{"t":"- Conducteur présent sur le quai avec chaussure de sécurité et gilet haute visibilité\n- Clé du tracteur accrochée au quai et cale de quai positionné sous la roue.\t\n- Freins remorque et tracteur mis par le conducteur\t\n- Remorque bien positionnée, avec pont niveleur qui recouvre suffisament la remorque\n- Pour les remorques déletelées, présence du tréteau de quai","b":[1,1,1,1],"w":1}],[38,2,{"b":[1,0,0,0],"s":10}],[38,3,{"b":[1,0,0,0],"s":10}],[38,4,{"b":[1,0,0,0],"s":10}],[38,5,{"b":[1,1,0,0],"s":10}],[38,6,{"b":[1,1,1,1],"w":1,"a":"c"}],[38,7,{"b":[1,1,1,1],"w":1,"a":"c"}],[38,8,{"w":1}],[39,1,{"b":[0,0,0,1],"s":10}],[39,2,{"s":10}],[39,3,{"s":10}],[39,4,{"s":10}],[39,5,{"b":[0,1,0,0],"s":10}],[39,6,{"b":[0,1,0,1],"s":10}],[39,7,{"b":[0,1,0,1],"s":10}],[39,8,{"w":1}],[40,1,{"b":[0,0,0,1],"s":10}],[40,2,{"s":10}],[40,3,{"s":10}],[40,4,{"s":10}],[40,5,{"b":[0,1,0,0],"s":10}],[40,6,{"b":[0,1,0,1],"s":10}],[40,7,{"b":[0,1,0,1],"s":10}],[40,8,{"w":1}],[41,1,{"b":[0,0,1,1],"s":10}],[41,2,{"b":[0,0,1,0],"s":10}],[41,3,{"b":[0,0,1,0],"s":10}],[41,4,{"b":[0,0,1,0],"s":10}],[41,5,{"b":[0,1,1,0],"s":10}],[41,6,{"b":[0,1,1,1],"s":10}],[41,7,{"b":[0,1,1,1],"s":10}],[41,8,{"w":1}],[42,1,{"t":"Si non conforme, précisez :","w":1}],[42,2,{"w":1}],[42,3,{"w":1}],[42,4,{"s":10}],[42,5,{"s":10}],[42,6,{"w":1}],[42,7,{"w":1}],[42,8,{"w":1}],[43,1,{"w":1}],[43,2,{"w":1}],[43,3,{"w":1}],[43,4,{"w":1}],[43,5,{"w":1}],[43,6,{"w":1}],[43,7,{"w":1}],[43,8,{"w":1}],[44,1,{"f":"D9D9D9","w":1}],[44,2,{"f":"D9D9D9","w":1}],[44,3,{"f":"D9D9D9","w":1}],[44,4,{"f":"D9D9D9","w":1}],[44,5,{"f":"D9D9D9","w":1}],[44,6,{"f":"D9D9D9","w":1}],[44,7,{"f":"D9D9D9","w":1}],[44,8,{"f":"D9D9D9","w":1}],[45,1,{"w":1,"a":"c"}],[45,2,{"w":1,"a":"c"}],[45,3,{"w":1,"a":"c"}],[45,4,{"w":1,"s":10,"a":"c"}],[45,5,{"w":1,"a":"r"}],[45,6,{"w":1}],[45,7,{"w":1,"s":10}],[45,8,{"w":1,"s":10}],[46,1,{"t":"CONFORMITE\nDU VEHICULE (OEA & Hygiène)","b":[1,1,1,1],"w":1,"a":"c"}],[46,2,{"b":[1,1,0,0],"s":10}],[46,3,{"t":"Oui ","b":[1,1,1,1],"w":1,"a":"c"}],[46,4,{"t":"Non ","b":[1,1,1,1],"w":1,"s":10,"a":"c"}],[46,5,{"t":"Si non conforme, précisez :","b":[0,0,0,1],"w":1,"a":"c"}],[46,6,{"s":10}],[46,7,{"s":10}],[46,8,{"s":10}],[47,1,{"b":[0,0,1,1],"s":10}],[47,2,{"b":[0,1,1,0],"s":10}],[47,3,{"b":[1,1,1,1],"w":1,"a":"c"}],[47,4,{"b":[1,1,1,1],"w":1}],[47,5,{"w":1}],[47,6,{"t":"Bâche percée                   Odeur suspecte\nHumidité                          Plancher détérioré Chargement instable       Manque de propreté Absence de ridelles        Présence de nuisibles.\nAutres :","w":1,"s":10}],[47,7,{"s":10}],[47,8,{"s":10}],[48,1,{"t":"L'état de la remorque ne doit présenter aucun risque pour la marchandise transportée. Le sol de la remorque doit être propre, le plafond étanche et absence d'éléments pouvant endommager les emballages. La remorque ne doit présenter aucun trou dans le plancher, paroi, plafond.\nLa remorque doit disposer de son câble de tir, des ridelles et planches sur les parois pour les bâchées, de la barre de séparation pour les colivraisons.","b":[1,0,0,0],"w":1,"s":10}],[48,2,{"b":[1,0,0,0],"s":10}],[48,3,{"b":[1,0,0,0],"s":10}],[48,4,{"b":[1,0,0,0],"s":10}],[48,5,{"w":1,"s":10}],[48,6,{"s":10}],[48,7,{"s":10}],[48,8,{"s":10}],[49,1,{"s":10}],[49,2,{"s":10}],[49,3,{"s":10}],[49,4,{"s":10}],[49,5,{"w":1,"s":10}],[49,6,{"s":10}],[49,7,{"s":10}],[49,8,{"s":10}],[50,1,{"s":10}],[50,2,{"s":10}],[50,3,{"s":10}],[50,4,{"s":10}],[50,5,{"w":1,"s":10}],[50,6,{"s":10}],[50,7,{"s":10}],[50,8,{"s":10}],[51,1,{"s":10}],[51,2,{"s":10}],[51,3,{"s":10}],[51,4,{"s":10}],[51,5,{"w":1,"s":10}],[51,6,{"s":10}],[51,7,{"s":10}],[51,8,{"s":10}],[52,1,{"s":10}],[52,2,{"s":10}],[52,3,{"s":10}],[52,4,{"s":10}],[52,5,{"w":1,"s":10}],[52,6,{"w":1}],[52,7,{"w":1,"s":10}],[52,8,{"w":1,"s":10}],[53,1,{"f":"D9D9D9","w":1}],[53,2,{"f":"D9D9D9","w":1}],[53,3,{"f":"D9D9D9","w":1}],[53,4,{"f":"D9D9D9","w":1}],[53,5,{"f":"D9D9D9","w":1}],[53,6,{"f":"D9D9D9","w":1}],[53,7,{"f":"D9D9D9","w":1}],[53,8,{"f":"D9D9D9","w":1}],[54,1,{"w":1}],[54,2,{"w":1}],[54,3,{"w":1}],[54,4,{"w":1}],[54,5,{"w":1}],[54,6,{"w":1}],[54,7,{"w":1}],[54,8,{"w":1}],[55,1,{"t":"DESCRIPTIONS DES RESERVES","w":1,"s":12,"a":"c"}],[55,2,{"s":10}],[55,3,{"s":10}],[55,4,{"s":10}],[55,5,{"s":10}],[55,6,{"s":10}],[55,7,{"s":10}],[55,8,{"s":10}],[56,1,{"w":1,"s":10,"a":"c"}],[56,2,{"w":1,"s":10,"a":"c"}],[56,3,{"w":1}],[56,4,{"w":1}],[56,5,{"w":1}],[56,6,{"w":1}],[56,7,{"w":1}],[56,8,{"w":1}],[57,1,{"t":"EXCEDENT"}],[57,2,{"b":[1,1,1,1],"s":10}],[57,3,{"s":10}],[57,4,{"t":"MANQUANT"}],[57,5,{"s":10}],[57,6,{"b":[1,1,1,1],"s":10}],[57,7,{"s":10}],[57,8,{"s":10}],[58,1,{"w":1,"s":10}],[58,2,{"w":1,"s":10}],[58,3,{"s":10}],[58,4,{"s":10}],[58,5,{"s":10}],[58,6,{"s":10}],[58,7,{"s":10}],[58,8,{"s":10}],[59,1,{"t":"EMB ABIMES"}],[59,2,{"b":[1,1,1,1],"s":10}],[59,3,{"s":10}],[59,4,{"t":"PRODUITS ABIMES"}],[59,5,{"s":10}],[59,6,{"b":[1,1,1,1],"s":10}],[59,7,{"s":10}],[59,8,{"s":10}],[60,1,{"s":10}],[60,2,{"s":10}],[60,3,{"s":10}],[60,4,{"s":10}],[60,5,{"s":10}],[60,6,{"s":10}],[60,7,{"s":10}],[60,8,{"s":10}],[61,1,{"t":"ABIMES APRES RECEPTION"}],[61,2,{"s":10}],[61,3,{"b":[1,1,1,1],"s":10,"a":"c"}],[61,4,{"b":[1,0,1,0],"s":10}],[61,5,{"b":[1,0,1,0],"s":10}],[61,6,{"b":[1,0,1,0],"s":10}],[61,7,{"b":[1,0,1,0],"s":10}],[61,8,{"b":[1,1,1,0],"s":10}],[62,2,{"s":10}],[62,3,{"s":10}],[62,4,{"s":10}],[62,5,{"s":10}],[62,6,{"s":10}],[62,7,{"s":10}],[62,8,{"s":10}],[63,1,{"t":"Autres / Commentaire :"}],[63,2,{"s":10}],[63,3,{"s":10}],[63,4,{"s":10}],[63,5,{"s":10}],[63,6,{"s":10}],[63,7,{"s":10}],[63,8,{"s":10}],[64,2,{"s":10}],[64,3,{"s":10}],[64,4,{"s":10}],[64,5,{"s":10}],[64,6,{"s":10}],[64,7,{"s":10}],[64,8,{"s":10}],[65,2,{"s":10}],[65,3,{"s":10}],[65,4,{"s":10}],[65,5,{"s":10}],[65,6,{"s":10}],[65,7,{"s":10}],[65,8,{"s":10}],[66,2,{"s":10}],[66,3,{"s":10}],[66,4,{"s":10}],[66,5,{"s":10}],[66,6,{"s":10}],[66,7,{"s":10}],[66,8,{"s":10}]],"merges":[[26,6,29,7],[17,5,18,5],[46,1,47,2],[30,2,31,4],[25,6,25,7],[20,5,21,5],[32,2,33,4],[6,8,7,8],[31,11,31,22],[1,3,2,6],[26,2,29,4],[38,7,41,7],[14,1,15,8],[40,11,40,22],[17,1,18,2],[2,8,3,8],[9,4,11,4],[9,6,11,6],[4,7,5,8],[3,3,5,6],[20,2,21,3],[61,3,61,8],[7,4,8,4],[6,7,7,7],[37,1,37,5],[47,6,51,8],[30,5,31,5],[3,1,5,2],[32,1,33,1],[22,2,23,3],[38,1,41,5],[20,6,21,8],[55,1,55,8],[32,5,33,5],[48,1,52,4],[22,1,23,1],[26,1,29,1],[17,3,18,3],[38,6,41,6],[7,3,8,3],[20,1,21,1],[7,5,8,5],[1,1,2,2],[7,1,11,1],[25,2,25,4],[17,6,18,8],[8,7,9,8],[26,5,29,5],[24,5,24,7],[30,6,31,7],[1,7,1,8],[7,2,8,2],[46,5,46,8],[13,1,13,8],[7,6,8,6],[32,6,33,7],[2,7,3,7],[30,1,31,1],[9,5,11,5]]}};
+const POCH_CSS='@page{size:A3 landscape;margin:0}body{font-family:Arial;color:#000;margin:0;padding:0}'+
+'*{box-sizing:border-box}'+
+'.poch{width:420mm;height:296mm;display:flex;page-break-after:always;overflow:hidden}.poch:last-child{page-break-after:auto}'+
+'.half{width:210mm;height:296mm}'+
+'.back{border-right:1px dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14mm;padding:10mm}'+
+'.back .qr{width:70mm;height:70mm}.back .qr img,.back .qr canvas{width:70mm!important;height:70mm!important}'+
+'.back svg{width:150mm}'+
+'.back .bt{font-size:20px;font-weight:900;text-align:center}'+
+'.back .bh{font-size:11px;color:#444;text-align:center}'+
+'.front{padding:4mm}'+
+'.sheet{position:relative;width:202mm;height:288mm}'+
+'.pc{position:absolute;overflow:hidden;line-height:1.05;white-space:pre-wrap;padding:0.4mm 0.6mm;display:flex;align-items:center}'+
+'.pc.ac{justify-content:center;text-align:center}.pc.ar{justify-content:flex-end;text-align:right}';
+function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+/* Rendu fidèle d'une feuille Excel (cellules positionnées, fusions, bordures, polices) */
+function pochGeom(t){
+  if(t._g)return t._g;
+  const cx=[0];t.colW.forEach(w=>cx.push(cx[cx.length-1]+w));
+  const cy=[0];t.rowH.forEach(h=>cy.push(cy[cy.length-1]+h));
+  const map={};t.cells.forEach(([r,c,p])=>map[r+'_'+c]=p);
+  const cov={},anch={};
+  t.merges.forEach(m=>{anch[m[0]+'_'+m[1]]=m;for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])cov[r+'_'+c]=1;});
+  t._g={cx,cy,map,cov,anch,W:cx[cx.length-1],H:cy[cy.length-1]};
+  return t._g;
+}
+function pochLblRight(t,rx){
+  const g=pochGeom(t);
+  for(const[k,pr]of Object.entries(g.map)){
+    if(pr.t&&rx.test(pr.t)){
+      const[r,c]=k.split('_').map(Number);
+      const m=g.anch[k];
+      const tc=(m?m[3]:c)+1;
+      if(tc>t.nc)return null;
+      return (m?m[0]:r)+'_'+tc;
+    }
+  }
+  return null;
+}
+function pochAnchorOf(t,k){
+  const g=pochGeom(t);
+  if(!g.cov[k])return k;
+  const[r,c]=k.split('_').map(Number);
+  for(const[ak,m]of Object.entries(g.anch))if(r>=m[0]&&r<=m[2]&&c>=m[1]&&c<=m[3])return ak;
+  return k;
+}
+function pochFace(t,ov,opts){opts=opts||{};const skip=opts.skip||null;const boost=opts.boost||1;const zones=opts.zones||[];
+  const inZone=(r,c)=>zones.some(z=>r>=z.r1&&r<=z.r2&&c>=z.c1&&c<=z.c2);
+  const g=pochGeom(t);
+  const sx=202/g.W,sy=288/g.H;
+  const map=Object.assign({},g.map);
+  for(let[k,v]of Object.entries(ov||{})){
+    if(v==null)continue;
+    k=pochAnchorOf(t,k);
+    map[k]=Object.assign({},map[k]||{},typeof v==='object'?v:{t:String(v),w:1});
+  }
+  const bw=w=>w===2?'2px':'1px';
+  let html='';
+  const drawn={};
+  const box=(r1,c1,r2,c2,p,key)=>{
+    const x=g.cx[c1-1]*sx,y=g.cy[r1-1]*sy,w=(g.cx[c2]-g.cx[c1-1])*sx,h=(g.cy[r2]-g.cy[r1-1])*sy;
+    // Bordures : côté par côté, en balayant les cellules de bord de la zone
+    const side=(cells,idx)=>{let mx=0;cells.forEach(k2=>{const q=g.map[k2];if(q&&q.b&&q.b[idx]>mx)mx=q.b[idx];});return mx;};
+    const topC=[],botC=[],lefC=[],rigC=[];
+    for(let c=c1;c<=c2;c++){topC.push(r1+'_'+c);botC.push(r2+'_'+c);}
+    for(let r=r1;r<=r2;r++){lefC.push(r+'_'+c1);rigC.push(r+'_'+c2);}
+    const bt=side(topC,0),br=side(rigC,1),bb=side(botC,2),bl=side(lefC,3);
+    let st='left:'+x.toFixed(2)+'mm;top:'+y.toFixed(2)+'mm;width:'+w.toFixed(2)+'mm;height:'+h.toFixed(2)+'mm;';
+    if(p.f)st+='background:#'+p.f+';';
+    if(bt)st+='border-top:'+bw(bt)+' solid #000;';
+    if(br)st+='border-right:'+bw(br)+' solid #000;';
+    if(bb)st+='border-bottom:'+bw(bb)+' solid #000;';
+    if(bl)st+='border-left:'+bw(bl)+' solid #000;';
+    const fs=Math.round((p.s||10)*boost*10)/10;
+    st+='font-size:'+fs+'px;'+(p.w?'font-weight:800;':'');
+    const cls='pc'+(p.a==='c'?' ac':(p.a==='r'?' ar':''));
+    html+='<div class="'+cls+'" style="'+st+'">'+esc(p.t||'')+'</div>';
+  };
+  // Fusions d'abord (bornées au cadre extrait : la feuille peut avoir des fusions au-delà)
+  Object.entries(g.anch).forEach(([k,m])=>{
+    if(m[1]>t.nc||m[0]>t.nr)return;
+    if(skip&&m[0]>=skip[0]&&m[0]<=skip[1])return;
+    if(inZone(m[0],m[1]))return;
+    const r2=Math.min(m[2],t.nr),c2=Math.min(m[3],t.nc);
+    const p=map[k]||{};
+    box(m[0],m[1],r2,c2,p,k);drawn[k]=1;
+    for(let r=m[0];r<=r2;r++)for(let c=m[1];c<=c2;c++)drawn[r+'_'+c]=1;
+  });
+  // Cellules seules (contenu, fond ou bordure) + surcharges hors gabarit
+  Object.entries(map).forEach(([k,p])=>{
+    if(drawn[k]||g.cov[k])return;
+    if(!p.t&&!p.f&&!p.b)return;
+    const[r,c]=k.split('_').map(Number);
+    if(skip&&r>=skip[0]&&r<=skip[1])return;
+    if(inZone(r,c))return;
+    box(r,c,r,c,p,k);drawn[k]=1;
+  });
+  let extra='';
+  zones.forEach(z=>{
+    const x=g.cx[z.c1-1]*sx,y=g.cy[z.r1-1]*sy,wd=(g.cx[z.c2]-g.cx[z.c1-1])*sx,ht=(g.cy[z.r2]-g.cy[z.r1-1])*sy;
+    const fs=Math.round((z.s||10)*boost*10)/10;
+    html+='<div class="pc'+(z.a==='c'?' ac':'')+'" style="left:'+x.toFixed(2)+'mm;top:'+y.toFixed(2)+'mm;width:'+wd.toFixed(2)+'mm;height:'+ht.toFixed(2)+'mm;border:1px solid #000;background:#fff;font-size:'+fs+'px;'+(z.w?'font-weight:800;':'')+(z.st||'')+'">'+(z.html||esc(z.t||''))+'</div>';
+  });
+  if(opts.block&&skip){
+    const sy=288/g.H;
+    const y0=g.cy[skip[0]-1]*sy,y1=g.cy[skip[1]]*sy;
+    extra=opts.block(y0,y1-y0);
+  }
+  return '<div class="sheet">'+html+extra+'</div>';
+}
+/* ===== Gabarits de pochettes par client (export / import Excel, stockage Firebase) ===== */
+const pochTplCache={};   // 'CL|flux' → gabarit ou false (aucun)
+function pochTplKey(cl,flux){return (cl||'').toUpperCase()+'|'+flux;}
+function pochTplLocal(cl,flux){return (state.pochTpl||{})[pochTplKey(cl,flux)]||null;}
+function loadPochTpl(cl,flux){
+  const k=pochTplKey(cl,flux);
+  if(k in pochTplCache)return Promise.resolve(pochTplCache[k]);
+  const loc=pochTplLocal(cl,flux);
+  if(loc){pochTplCache[k]=loc;return Promise.resolve(loc);}
+  if(!fb.enabled||!cl){pochTplCache[k]=false;return Promise.resolve(false);}
+  try{
+    return fb.db.ref('pochtpl/'+fbSafe(cl.toUpperCase())+'/'+flux).once('value')
+      .then(sn=>{const v=sn.val();pochTplCache[k]=v||false;if(v){state.pochTpl=state.pochTpl||{};state.pochTpl[k]=v;}return pochTplCache[k];})
+      .catch(()=>{pochTplCache[k]=false;return false;});
+  }catch(e){pochTplCache[k]=false;return Promise.resolve(false);}
+}
+function pochTplFor(cl,flux){return pochTplCache[pochTplKey(cl,flux)]||(flux==='in'?POCH_TPL.inn:POCH_TPL.out);}
+function colLetter(n){let sN='';while(n>0){const m=(n-1)%26;sN=String.fromCharCode(65+m)+sN;n=(n-m-1)/26;}return sN;}
+function tplToWorkbook(tpl,name){
+  const ws={};let maxR=tpl.nr,maxC=tpl.nc;
+  const g={};tpl.cells.forEach(([r,c,p])=>{if(p.t)ws[colLetter(c)+r]={v:p.t,t:'s'};});
+  ws['!ref']='A1:'+colLetter(maxC)+maxR;
+  ws['!merges']=tpl.merges.map(m=>({s:{r:m[0]-1,c:m[1]-1},e:{r:m[2]-1,c:m[3]-1}}));
+  ws['!cols']=tpl.colW.map(w=>({wch:Math.max(1,Math.round(w/7*100)/100)}));
+  ws['!rows']=tpl.rowH.map(h=>({hpt:Math.max(4,Math.round(h*3/4*10)/10)}));
+  // Feuille STYLES : r, c, gras, taille, alignement, fond, bordures TRBL (1=fin, 2=épais)
+  const sd=[['ligne','colonne','gras(1)','taille','alignement(c/r)','fond(hex)','bord_haut','bord_droit','bord_bas','bord_gauche']];
+  tpl.cells.forEach(([r,c,p])=>{const b=p.b||[0,0,0,0];if(p.w||p.s||p.a||p.f||b.some(x=>x))sd.push([r,c,p.w?1:'',p.s||'',p.a||'',p.f||'',b[0]||'',b[1]||'',b[2]||'',b[3]||'']);});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'POCHETTE');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sd),'STYLES');
+  XLSX.writeFile(wb,name);
+}
+function wsToTpl(ws,stylesRows,base){
+  // Bornes
+  let maxR=base.nr,maxC=base.nc;
+  const cellRe=/^([A-Z]+)(\d+)$/;
+  const colNum=a=>{let n=0;for(const ch of a)n=n*26+(ch.charCodeAt(0)-64);return n;};
+  const texts={};
+  Object.keys(ws).forEach(k=>{const m=k.match(cellRe);if(!m)return;const c=colNum(m[1]),r=+m[2];if(r>120||c>30)return;if(r>maxR)maxR=r;if(c>maxC)maxC=c;const v=ws[k].v;if(v!=null&&String(v).trim()!=='')texts[r+'_'+c]=String(v);});
+  maxR=Math.min(maxR,120);maxC=Math.min(maxC,30);
+  // Styles : depuis la feuille STYLES si fournie, sinon hérités du gabarit de base par coordonnée
+  const styles={};
+  if(stylesRows&&stylesRows.length>1){
+    stylesRows.slice(1).forEach(row=>{
+      const r=+row[0],c=+row[1];if(!r||!c)return;
+      const p={};
+      if(+row[2])p.w=1;if(+row[3])p.s=+row[3];if(row[4])p.a=String(row[4])[0];
+      if(row[5])p.f=String(row[5]).replace(/[^0-9A-Fa-f]/g,'').toUpperCase().slice(0,6);
+      const b=[+row[6]||0,+row[7]||0,+row[8]||0,+row[9]||0];if(b.some(x=>x))p.b=b;
+      styles[r+'_'+c]=p;
+    });
+  }else base.cells.forEach(([r,c,p])=>{const q={};if(p.w)q.w=1;if(p.s)q.s=p.s;if(p.a)q.a=p.a;if(p.f)q.f=p.f;if(p.b)q.b=p.b;styles[r+'_'+c]=q;});
+  // Cellules = union textes + styles
+  const keys=new Set([...Object.keys(texts),...Object.keys(styles)]);
+  const cells=[];
+  keys.forEach(k=>{const[r,c]=k.split('_').map(Number);if(r>maxR||c>maxC)return;const p=Object.assign({},styles[k]||{});if(texts[k])p.t=texts[k];if(Object.keys(p).length)cells.push([r,c,p]);});
+  // Fusions / dimensions
+  const merges=(ws['!merges']||[]).map(m=>[m.s.r+1,m.s.c+1,m.e.r+1,m.e.c+1]).filter(m=>m[0]<=maxR&&m[1]<=maxC);
+  const colW=[];for(let i=0;i<maxC;i++){const d=(ws['!cols']||[])[i];colW.push(d&&d.wch?Math.round(d.wch*7):(base.colW[i]||59));}
+  const rowH=[];for(let i=0;i<maxR;i++){const d=(ws['!rows']||[])[i];rowH.push(d&&(d.hpt||d.hpx)?Math.round((d.hpt||d.hpx*0.75)*4/3):(base.rowH[i]||20));}
+  if(!cells.length)return null;
+  return{r1:1,c1:1,nr:maxR,nc:maxC,colW,rowH,cells,merges};
+}
+function pochWrap(pid,pay,purl,codeLabel,frontHTML){
+  return '<div class="poch">'+
+    '<div class="half back">'+
+      '<div class="bt">'+codeLabel+'</div>'+
+      '<div id="q'+pid+'" class="qr"></div>'+
+      '<svg id="b'+pid+'"></svg>'+
+      '<div class="bh">📱 QR : appareil photo du téléphone → pointage direct, sans compte<br>⌨ Code-barres : douchette au poste</div>'+
+      '<script>new QRCode(document.getElementById("q'+pid+'"),{text:'+JSON.stringify(purl)+',width:260,height:260,correctLevel:QRCode.CorrectLevel.L});JsBarcode("#b'+pid+'",'+JSON.stringify(pay)+',{format:"CODE128",height:105,width:3,fontSize:17,margin:6});<\/script>'+
+    '</div>'+
+    '<div class="half front">'+frontHTML+'</div>'+
+  '</div>';
+}
+function pochOutHTML(r,tplArg){
+  const t=tplArg||pochTplFor(r.cl,'out'),veh=(r.typeVeh||'').toLowerCase();
+  const ov={};
+  ov['6_1']=fmtFR(state.currentDate);                    // date de chargement
+  ov['6_7']=r.rdv||'';                                   // heure de chargement
+  ov['8_3']=null; // remplacé par la zone bandeau ci-dessous
+  ov['8_5']=r.transporteur||'';                          // transporteur
+  ov['22_6']=r.ref||'';                                  // n° de commande
+  ov['27_1']={t:(r.destinataire||'')+(r.adr?'\n'+r.adr:'')+((r.cp||r.ville)?'\n'+(r.cp||'')+' '+(r.ville||''):''),w:1,s:12};
+  ov['8_9']={t:'REMORQUE :'+(r.immR?'  '+r.immR:''),w:1,a:'c',s:9};  // compact, une ligne
+  ov['21_3']={t:'TOTAL PALETTES :  '+(r.pal||''),w:1,s:11};   // aligné à gauche, le chargeur complète à la main
+
+  const isB=/b[aâ]ch/.test(veh),isT=/t[oô]l|taut/.test(veh);
+  ov['11_10']={t:(isB?'☒':'☐')+' Bachée',w:1,a:'c',s:10};
+  ov['11_11']={t:(isT?'☒':'☐')+' Tolée',w:1,a:'c',s:10};
+  // Conformité véhicule : polices réduites pour tenir dans les cases
+  ov['48_1']={s:7};ov['57_8']={s:7};
+  if(r.groupage)ov['3_9']={t:'⛓ GROUPAGE '+r.groupage,w:1,a:'r'};
+  const conf=['Conducteur présent pour le chargement','Conducteur avec chaussures de sécurité et gilet haute visibilité','Freins remorque et tracteur mis par le conducteur','Clé du tracteur accrochée au quai','Remorque bien positionnée, pont niveleur recouvrant la remorque','Cale de quai positionnée sous l\'essieu central','Remorques dételées : présence du tréteau de quai','Autre : ______________________'];
+  const block=(y,h)=>{
+    const rowH=(h-7)/conf.length;
+    const chk='<span style="display:inline-block;width:3.6mm;height:3.6mm;border:1.5px solid #000;vertical-align:middle"></span>';
+    let lst='<div style="position:absolute;left:0;top:'+y.toFixed(1)+'mm;width:118mm;height:'+h.toFixed(1)+'mm;border:2px solid #000">'+
+      '<div style="background:#dfe7f2;font-weight:900;font-size:11.5px;padding:1mm 2mm;border-bottom:1px solid #000;display:flex"><span style="flex:1">CONFORMITÉ MISE À QUAI</span><span style="width:12mm;text-align:center">OUI</span><span style="width:12mm;text-align:center">NON</span></div>';
+    conf.forEach((tx,i)=>{lst+='<div style="display:flex;align-items:center;font-size:10px;padding:0 2mm;height:'+rowH.toFixed(2)+'mm;'+(i%2?'background:#f4f6f9;':'')+'"><span style="flex:1">'+tx+'</span><span style="width:12mm;text-align:center">'+chk+'</span><span style="width:12mm;text-align:center">'+chk+'</span></div>';});
+    lst+='</div>';
+    lst+='<div style="position:absolute;left:121mm;top:'+y.toFixed(1)+'mm;width:81mm;height:'+h.toFixed(1)+'mm;border:2.5px solid #b8632a;border-radius:2mm;background:#fff8f0;padding:2mm;overflow:hidden">'+
+      '<div style="font-weight:900;font-size:12px;color:#b8632a;margin-bottom:1.5mm">📌 CR CLIENT</div>'+
+      (r.cr?'<div style="font-size:'+(r.cr.length>140?'10.5':(r.cr.length>70?'12':'14'))+'px;font-weight:800;line-height:1.35;white-space:pre-wrap">'+esc(r.cr)+'</div>'
+           :'<div style="font-size:10px;color:#777">Consignes / observations :</div>')+
+      '</div>';
+    return lst;
+  };
+  const CB='<span style="display:inline-block;width:3.4mm;height:3.4mm;border:1.5px solid #000;vertical-align:middle;margin:0 1mm"></span>';
+  const zones=[
+    // Bandeau CODE CHARGEMENT fusionné (libellé + valeur)
+    {r1:8,c1:1,r2:9,c2:4,html:'<span style="font-size:10px;text-transform:uppercase">Code chargement :&nbsp;&nbsp;</span><span style="font-size:15px;font-weight:900;letter-spacing:0.3px">'+esc(r.departure||'')+'</span>',st:'align-items:center;'},
+    // Conformité véhicule : Oui / Non sur double hauteur
+    {r1:46,c1:5,r2:47,c2:6,html:'<span style="font-weight:900;font-size:12px">Oui&nbsp;&nbsp;'+'<span style="display:inline-block;width:4.2mm;height:4.2mm;border:1.6px solid #000;vertical-align:middle"></span></span>',a:'c'},
+    {r1:46,c1:7,r2:47,c2:7,html:'<span style="font-weight:900;font-size:12px">Non&nbsp;&nbsp;'+'<span style="display:inline-block;width:4.2mm;height:4.2mm;border:1.6px solid #000;vertical-align:middle"></span></span>',a:'c'},
+    // Liste « précisez » élargie sur les colonnes de gauche libérées
+    {r1:47,c1:8,r2:53,c2:11,html:'<div style="width:100%;height:100%;display:flex;flex-direction:column;font-size:9.5px">'+
+      ['Bâche percée','Odeur suspecte / humidité','Plancher détérioré','Manque de propreté','Absence de ridelles','Présence de nuisibles','Autres, précisez : ____________'].map((tx,i)=>'<div style="flex:1;display:flex;align-items:center;padding:0 1.5mm;'+(i%2?'background:#f4f6f9;':'')+'"><span style="flex:1">'+tx+'</span><span style="display:inline-block;width:3.4mm;height:3.4mm;border:1.5px solid #000"></span></div>').join('')+'</div>'},
+    // Pile CONTRÔLE compactée et remontée : contrôleur + conforme + corrections dans un seul pavé
+    {r1:13,c1:9,r2:21,c2:11,html:
+      '<div style="width:100%;height:100%;display:flex;flex-direction:column;font-size:9.5px">'+
+      '<div style="background:#dfe7f2;font-weight:900;padding:0.8mm 1.5mm;border-bottom:1px solid #000">CONTRÔLE (procédure n° 040)</div>'+
+      '<div style="padding:1mm 1.5mm;border-bottom:1px solid #000;flex:1">CONTRÔLEUR :<br><br></div>'+
+      '<div style="padding:1mm 1.5mm;border-bottom:1px solid #000;font-weight:800">Contrôle conforme :&nbsp;&nbsp;Oui '+CB+'&nbsp;Non '+CB+'</div>'+
+      '<div style="padding:1mm 1.5mm;font-weight:800">Corrections réalisées :&nbsp;&nbsp;Oui '+CB+'&nbsp;Non '+CB+'<br><span style="font-weight:400;font-size:8.5px">Détail : ______________________________</span></div>'+
+      '</div>'},
+    // Accord client : libellés fusionnés avec leur case de réponse
+    {r1:57,c1:4,r2:57,c2:7,t:'CHARGEMENT :  ______________________',s:9,w:1},
+    {r1:58,c1:4,r2:58,c2:7,t:"NOM DU CLIENT QUI DONNE L'ACCORD :  ______________",s:8,w:1},
+    // Plombage : fusionné sur double hauteur pour lisibilité
+    {r1:63,c1:6,r2:64,c2:7,html:'<span style="font-weight:800;font-size:11px">Plombage du camion&nbsp;&nbsp;'+CB+'</span>',st:'align-items:center;'},
+    {r1:63,c1:8,r2:64,c2:11,t:'Si oui, n° de PLOMB :  '+(r.plomb||'____________'),s:11,w:1,st:'align-items:center;'}
+  ];
+  const pay=scanPayload('out',r);
+  return pochWrap('po'+r.id,pay,scanUrl(pay),esc(r.departure),pochFace(t,ov,{skip:[33,45],boost:1.15,block:block,zones:zones}));
+}
+function pochInHTML(u,tplArg){
+  const rows=u.rows||[u];const r=rows[0];const t=tplArg||pochTplFor(rows[0].cl,'in');
+  const refs=[];rows.forEach(x=>(x.refs||[]).forEach(rf=>refs.push(rf)));
+  const qty=rows.reduce((a,x)=>a+(parseFloat(x.qty)||0),0);
+  const seal=rows.map(x=>x.seal).find(Boolean)||'';
+  const asn=[...new Set(rows.map(x=>x.asn).filter(Boolean))].join(' / ');
+  const ov={};
+  const put=(rx,val,extra)=>{const k=pochLblRight(t,rx);if(k)ov[k]=Object.assign({t:String(val==null?'':val),w:1},extra||{});};
+  put(/NUMERO REFLEX/,asn);
+  put(/^TRANSPORT$/,r.message||'');
+  ov['4_7']={t:'Container :\n'+(r.container||''),w:1,s:12,a:'c'};       // valeur dans la case du libellé
+  ov['9_2']={t:r.quai||'',w:1,a:'c'};ov['9_3']={t:fmtFR(state.currentDate),w:1,a:'c'};
+  ov['9_4']={t:r.rdv||'',w:1,a:'c'};ov['9_5']={t:r.arrivee||'',w:1,a:'c'};ov['9_6']={t:r.depart||'',w:1,a:'c'};
+  put(/annoncé/,seal);
+  put(/Nombre de colis/,qty||'');
+  put(/Nombre de référence/,refs.length||'');
+  {const MAX=18;ov['14_1']={t:refs.slice(0,MAX).map(x=>x.m+' ×'+x.q).join('  ·  ')+(refs.length>MAX?'  ·  … +'+(refs.length-MAX)+' réf.':''),w:1,s:8};}
+  const pay=scanPayload('in',r);
+  return pochWrap('pi'+r.id,pay,scanUrl(pay),esc(r.container||''),pochFace(t,ov));
+}
+function printPochettes(flux,items){
+  if(!items.length){alert('Aucun élément à imprimer.');return;}
+  const cls=[...new Set(items.map(it=>flux==='in'?((it.rows&&it.rows[0]&&it.rows[0].cl)||''):(it.cl||'')))];
+  Promise.all(cls.map(c=>loadPochTpl(c,flux))).then(()=>printPochettes2(flux,items));
+}
+function printPochettes2(flux,items){
+  const pages=flux==='in'?items.map(u=>pochInHTML(u)):items.map(r=>pochOutHTML(r));
+  const w=window.open('','_blank');
+  if(!w){alert('Autorise les fenêtres pop-up pour imprimer.');return;}
+  w.document.write('<html><head><title>Pochettes '+fmtFR(state.currentDate)+'</title><style>'+POCH_CSS+'</style>'+
+    '<script src="'+LIB_QR+'"><\/script><script src="'+LIB_BAR+'"><\/script></head><body>'+pages.join('')+'</body></html>');
+  w.document.close();setTimeout(()=>{try{w.print();}catch(e){}},900);
+}
+function pochettesForUnit(flux,id){
+  const r=findRow(flux,id);if(!r)return[];
+  if(flux==='out'){
+    if(!r.groupage)return[r];
+    return dayData().rows.filter(x=>(x.cl||'')===(r.cl||'')&&x.groupage===r.groupage);
+  }
+  const rows=dayData().inRows.filter(x=>(x.cl||'')===(r.cl||'')&&(x.container||x.id)===(r.container||r.id));
+  return[{rows:rows.length?rows:[r]}];
+}
+function pochettesForDay(flux){
+  if(flux==='out')return scopedRows().slice().sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99'));
+  const units=inUnits(scopedInRows());
+  return units.sort((a,b)=>(a.rdv||'99').localeCompare(b.rdv||'99')).map(u=>({rows:scopedInRows().filter(x=>(x.cl||'')===(u.cl||'')&&(x.container||x.id)===(u.container||u.id))}));
+}
+$('#pochBtn').onclick=()=>{const fx=state.flux==='in'?'in':'out';printPochettes(fx,pochettesForDay(fx));};
+$('#uPoch').onclick=()=>{printPochettes(curUnit.flux,pochettesForUnit(curUnit.flux,curUnit.id));};
 
 /* ===================== DOCUMENTS DE RDV (CMR, BL, photos) ===================== */
 /* Stockés dans Firebase sous docs/<date>/<unité> — chargés à l'ouverture de la fiche,
