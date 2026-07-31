@@ -131,6 +131,22 @@
   .cmpcell.has.capover{outline:2px solid #c0392b}
   .cmpcell.latereal{background:#fdecea!important;outline:2px solid #c0392b;color:#7b241c;font-weight:800}
   .cmpcell.earlyreal{outline:2px solid #0f8a4d;font-weight:800}
+  #tvOverlay{position:fixed;inset:0;background:#0b1320;color:#eef2f8;z-index:2000;padding:2vh 2vw;font-family:inherit;overflow:hidden}
+  .tvhead{display:flex;align-items:baseline;gap:2vw;margin-bottom:1.6vh}
+  .tvhead .tvt{font-size:3.4vh;font-weight:900}
+  .tvhead .tvclock{font-size:3.4vh;font-weight:900;font-variant-numeric:tabular-nums;margin-left:auto}
+  .tvhead .tvchip{font-size:2.1vh;font-weight:800;padding:.5vh 1.2vw;border-radius:1.2vh;background:#16233c}
+  .tvhead .tvchip.red{background:#5d1a12}
+  .tvhead .tvchip.amb{background:#5d4312}
+  .tvclose{position:absolute;top:1.4vh;right:1.2vw;background:none;border:none;color:#8fa2c0;font-size:2.6vh;cursor:pointer}
+  table.tvgrid{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  .tvgrid th{font-size:1.9vh;text-transform:uppercase;color:#8fa2c0;text-align:left;padding:.6vh .8vw;border-bottom:2px solid #24344f}
+  .tvgrid td{font-size:2.6vh;font-weight:800;padding:.9vh .8vw;border-bottom:1px solid #1a2740}
+  .tvgrid tr.tvlate td{background:#3a1410;animation:tvblink 1.6s ease-in-out infinite}
+  .tvgrid tr.tvdone td{color:#61718c;font-weight:600}
+  @keyframes tvblink{50%{background:#571b13}}
+  .tvpill{display:inline-block;padding:.3vh 1vw;border-radius:1vh;font-size:2.1vh}
+  .tvpill.nonpresente{background:#24344f}.tvpill.attente{background:#6b5416}.tvpill.cours{background:#1c4a8a}.tvpill.termine{background:#155d38}.tvpill.retard{background:#8a1c10}.tvpill.retann{background:#5e2f77}
   .clcell{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);white-space:nowrap}
   .warnicon{font-size:12px}
   .cmtdot{font-size:11px;opacity:.85}
@@ -314,7 +330,7 @@
     <button class="btn" id="slotBtn" title="Paramètres administrateur (quais, slots)">⚙️ Paramètres</button>
     <button class="btn" id="printBtn">🖨</button>
     <button class="btn" id="scanBtn">📷 Scanner</button>
-    <button class="btn" id="labelsBtn">🏷️ Étiquettes</button><button class="btn" id="pochBtn">📄 Pochettes</button>
+    <button class="btn" id="labelsBtn">🏷️ Étiquettes</button><button class="btn" id="pochBtn">📄 Pochettes</button><button class="btn" id="tvBtn" title="Écran de quai (TV)">📺</button>
     <button class="btn" id="usersBtn">👤 Utilisateurs</button>
     <button class="btn" id="syncBtn">🔗 Sync</button>
   </div>
@@ -384,6 +400,17 @@
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
     <h3 style="margin:0">📊 Dashboard ponctualité</h3>
     <span style="color:var(--muted);font-size:12.5px" id="dashDate"></span>
+    <select id="dashPeriodSel" style="width:auto">
+      <option value="day">Journée</option>
+      <option value="week">7 derniers jours</option>
+      <option value="month">Mois en cours</option>
+      <option value="custom">Période…</option>
+    </select>
+    <span id="dashRange" style="display:none;gap:4px;align-items:center">
+      <input type="date" id="dashFrom" style="width:135px"> → <input type="date" id="dashTo" style="width:135px">
+      <button class="btn" id="dashRangeGo">Charger</button>
+    </span>
+    <button class="btn" id="dashRawExp" title="Extraction brute des lignes de la période">⬇ Données</button>
     <span class="spacer" style="flex:1"></span>
     <div class="field" style="flex-direction:row;align-items:center;gap:8px">
       <label style="white-space:nowrap">Tolérance (min)</label>
@@ -406,6 +433,8 @@
     <input type="time" id="chT2" style="width:92px">
   </div>
   <div id="chargeWrap"></div>
+  <div class="dashsection">🚛 Fiabilité transporteurs</div>
+  <div id="trspWrap"></div>
   <div class="dashsection" style="display:flex;align-items:center;gap:10px">📈 Tendances multi-jours
     <span class="spacer" style="flex:1"></span>
     <select id="trPeriod" style="width:auto"><option value="7">7 jours</option><option value="14">14 jours</option></select>
@@ -414,6 +443,8 @@
   <div id="trWrap"><div class="chleg">Clique « Analyser » pour charger les journées précédentes et dégager les tendances (volumes, ponctualité, saturation, équilibrage).</div></div>
   <div class="modal-actions"><button class="btn" id="dashExport">⬇ Exporter le dashboard</button></div>
 </div></div>
+
+<div id="tvOverlay" style="display:none"></div>
 
 <div class="overlay" id="usersModal"><div class="modal">
   <h3>Gestion des accès</h3>
@@ -455,6 +486,13 @@
     <div class="field"><label>Slots Réception (IN)</label><input type="number" id="slotsInInput" min="1" max="30" style="width:90px"></div>
     <div class="field"><label>Slots Expédition (OUT)</label><input type="number" id="slotsOutInput" min="1" max="30" style="width:90px"></div>
   </div>
+  <div class="dashsection">🗄 Archivage des journées</div>
+  <p>Exporte un mois complet en Excel (une feuille par jour, OUT + IN), puis propose de purger ces journées de la base pour la garder légère. Les documents (photos CMR) du mois peuvent être purgés aussi. <b>Admin uniquement — export d'abord, purge après confirmation.</b></p>
+  <div class="row2" style="gap:8px;margin-bottom:10px">
+    <input type="month" id="arcMonth" style="width:170px">
+    <button class="btn" id="arcGo">🗄 Archiver ce mois</button>
+    <span class="hint" id="arcStatus" style="align-self:center"></span>
+  </div>
   <div class="dashsection">📄 Gabarits de pochettes (par client)</div>
   <p>Exporte le gabarit en Excel, ajuste les textes / largeurs / hauteurs / styles, puis réimporte-le <b>pour le client choisi</b>. Chaque client peut avoir ses propres pochettes. ⚠️ Conserve la structure (numéros de lignes) : seuls textes, tailles et styles sont libres. La feuille <b>STYLES</b> pilote gras, polices, bordures et fonds.</p>
   <div class="row2" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">
@@ -487,6 +525,10 @@
   <div class="row2" id="uCmtAddRow" style="margin-top:8px">
     <input id="uCmtInput" placeholder="Ajouter un commentaire…" style="flex:1">
     <button class="btn primary" id="uCmtAdd">Ajouter</button>
+  </div>
+  <div class="row2" id="uMotifRow" style="display:none;align-items:center;gap:8px;margin:6px 0">
+    <span style="font-weight:800">⏰ Motif du retard :</span>
+    <select id="uMotif" style="width:auto"></select>
   </div>
   <div class="dashsection">📎 Documents (CMR, bon de livraison, photos…)</div>
   <div class="userlist" id="uDocs" style="max-height:30vh;overflow:auto"></div>
@@ -578,7 +620,7 @@
 <script>
 const LS='gxo_planning_inout_v2', LS_FB='gxo_planning_fb_v2', LS_SESS='gxo_planning_sess_v2';
 const STATUSES={nonpresente:'Non présenté',retard:'⏰ Retard',retann:'📞 Retard annoncé',attente:'En attente',cours:'En cours',termine:'Terminé'};
-const APP_VERSION='v2026.07.30-23';
+const APP_VERSION='v2026.07.31-27';
 const GRAIL=['#0b4f8a','#7a3fae','#0f8a6e','#b8632a','#a8336b','#3a6ea5','#7a8a0f'];
 /* Base CR client préchargée (code destinataire colonne L -> CR). Source: extraction Données de Base BP destinataire. */
 const DEFAULT_CRMAP={"1917369":"PREP PAL","1968911":"PREP PAL","2059448":"PREP PAL dg 05/10/2018","2088369":"PALETTES CERCLEES ET FILMEES","3300806":"PALETTES CERCLEES ET FILMEES","3385691":"REFILMER PAL 80*120","3451403":"PREP PALETTES","3458077":"PALETTES CERCLEES ET FILMEES","3478522":"PREP PAL","4313247":"1 COLIS 1 SUPPORT JUNG +surcollage","6053137":"PALETTE CERCLEES ET FILMEES","6212256":"PALETTES CERCLEES ET FILMEES","6280792":"PREP PAL","7394758":"PREP PALETTES","7398006":"SUR PALETTES / FILMAGE MEME SI CERCLAGE","9223778":"PREP PAL + MONO REF","9223779":"PREP PALETTE + MONO REF","9223811":"SUR PALETTES + MONO REF","9223812":"PREP PALETTES + MONO REF","9338220":"PALETTES CERCLEES ET FILMEES","0S413":"PHOTO DEBUT MILLIEU FIN","0001410228":"1.80 M MAXI","0001438542":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0001454250":"PREP  PAL","0001460204":"PREP PAL","0001488290":"PREPARATION SUR PALETTE SK LE 040226","000149449":"PALETTE MONO REF 1M80 MAXI","0001494494":"palette mono ref hauteur max 1m70 sk le 211217","0001495706":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001495743":"PALETTE MONO REF / hauteur 1m80 pour audio video","0001496150":"MONO REF sk le 19/10/17 suite mail TC — PREPARATION SUR PALETTE SK LE 040226","0001892895":"PREPARATION SUR PALETTE SK LE 040226","0001900673":"PREP PAL DG 25102019","0001968911":"PREPARATION SUR PALETTE SK LE 040226","0001969835":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0001982266":"chargement RAIL/ROUTE","0002012285":"PREPARATION SUR PALETTE SK LE 040226","0002012957":"MONO REF 1m80 MAXI","0002013994":"HAUTEUR 1M80 A RESPECTER POUR TOUTES LES REFS SAUF POUR LES 55' — (32\"/43\"/58\"/60\"/65\"/70\"/75\")-CHARGEMENT EN FOULEE","0002014466":"*** ADM VOIR SOPHIE POUR PLAN ORTEC ***","0002021829":"PREP PAL DG251019","0002023193":"HAUTEUR MAX 1,80m SAUF TELE / 1 REF PAR PALETTE — MONO REF","0002024058":"Palette mono référence - Hauteur maximum 1,60m — sur 80*120 ou 100*120 mail taj 161018","0002025772":"les 43' sont imperativement sur 2 couches","0002059448":"PREPARATION SUR PALETTE SK LE 040226","0002074403":"Hauteur maximum 1.80m","0002074404":"Hauteur maximum 1.80m","0002074447":"Hauteur maximum 2,20m","0002079873":"CHARGEMENT EN FOULEE","0002081082":"Palette mono référence - Hauteur maximum 2m","0002081932":"Hauteur maximum 1,80m","0002082543":"Palette mono référence - Hauteur maximum 1,80m","0002082724":"Hauteur maximum 1,80m","0002083548":"Lettre de voiture au BL","0002084979":"Hauteur maximum 1,30m","0002091143":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0002091488":"Palette mono référence","0002247972":"HAUTEUR MAX 1M80 TAJ LE 250718 sur AUDIO VIDEO","0002261256":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE","0002261259":"FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0002261280":"sur palettes 1.80M maxi MONO REF palettes cerclée sont à FILMER — DG 14/11/18 — 1M80 MAXI SUR LES BARRES DE SON-CHARGEMENT EN FOULEE","0002261289":"MONO REF POUR LE BLANC-CHARGEMENT EN FOULEE — RAJOUTER INTERCALAIRE POUR SEPARER LES REFS DDE TAJ DU 160523","0002261332":"mono ref pour le brun sk le 180920","0002332826":"PREPARATION SUR PALETTE SK LE 040226","0002333762":"MONO REF","0002334922":"PREPARATION SUR PALETTE SK LE 040226 — Hauteur 2m20 max suite mail justin 130819","0002337062":"palette mono ref hauteur 2m30 maxi mail justin 30/11/18","0002337065":"hauteur 2m20 max suite demande justin 130819","0002353770":"PREPARATION SUR PALETTE SK LE 040226","0002354199":"CHARGEMENT EN FOULEE","0002412403":"Lettre de voiture au BL","0002413184":"PREPARATION SUR PALETTE 1.80M MAX SK LE 040226","0002437040":"HAUTEUR PALETTE 2M MAX suite mail justin 180122","0002445640":"MONO REF","0002472625":"MONO REF dg 2020","0002474775":"2M MAXI Mno Ref DG 06082020","0002493367":"CHARGEMENT EN FOULEE","0003145385":"hauteur max 1m60","0003149230":"1.80 MAXI","0003158815":"CHARGEMENT EN FOULEE","0003161334":"Rework HW-Q600B/ZF","0003168012":"hauteur 1m40 max suite mail justin","0003181180":"PALETTE MONO Ref","0003183556":"MONO REF 2m30 maxi","0003184595":"Palette mono ref — Lettre de voiture au BL","0003189265":"hauteur max 2m10 mail justin du 301020","0003192301":"MPS LOGYSTECH = PREPARATION SUR 2 COUCHES UNIQUEMENT 2M10 MAX — MECALOG = CR 80*120","0003257802":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet — lettre de voiture au BL","0003268316":"MONO REF  1m80  MAXI","0003269331":"sur palettes","0003273142":"MONO  REF 1m80 MAXI","0003273148":"MONO REF  1m80 MAXI","0003286549":"brun : CR 1m80 barre de son et tv inferieur à 55' — pas de cr tv sup à 55'","0003286552":"pas de cr pour les palettes sup à 55' sk le 091019","0003286559":"1M80 MAXI suite mail justin du 04/06/20","0003288855":"Palette mono référence - Hauteur maximum 2m","0003289192":"SUR PALETTES","0003317770":"Rework HW-Q600B/ZF-chargement RAIL/ROUTE","0003324139":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003327166":"1M80 MAXI suite mail justin du 23/09/20 — DOUBLE STACK POSSIBLE MAIL TAJ 26/03/24","0003373392":"Hauteur maximum 1,60m mono reference","0003385684":"PREPARATION SUR 80*120 MINIMUM  1 REFERENCE PAR PALETTE","0003385688":"Palette mono référence - Maximum 1 référence par palette","0003405142":"Palette mono référence - Préparation sur palette 80*120 sauf TV — hauteur 1m40 max suite mail justin","0003406030":"FRIGOS SUR PALETTES","0003406683":"PREPARATION SUR PALETTE SK LE 040226","0003418147":"Hauteur maximum 1,80m","0003424492":"PREP PAL DG251019","0003436533":"PREPARATION SUR PALETTE SK LE 040226","0003436542":"PREPARATION SUR PALETTE SK LE 040226","0003436544":"PREPARATION SUR PALETTE SK LE 040226","0003437603":"chargement RAIL/ROUTE","0003442483":"SUR PALETTES ET MONO REF","0003451403":"PREPARATION SUR PALETTE SK LE 040226","0003467687":"PREP SUR PAL","0003478522":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0003863352":"PREPARATION SUR PALETTE SK LE 040226","0003903831":"hauteur max 1m80 suite mail justin 140521-CHARGEMENT EN FOULEE","0003991973":"PREPARATION SUR PALETTE SK LE 040226 — max 2M","0003993920":"PREPARATION SUR PALETTE SK LE 040226-CHARGEMENT EN FOULEE","0004172825":"préparation de produits sur palette pour les produits blancs GEM. — CHARGEMENT EN FOULEE","0004198369":"prep 1m60 suite mail tajamal du 091221","0004221729":"Rework HW-Q600B/ZF","0004244176":"Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0004244177":"Hauteur maximum 1,80m — sur 80*120 ou 100*120 si le produit le permet","0004248475":"Hauteur maximum 1,80m","0004256586":"Hauteur maximum 1,80m","0004257496":"Hauteur maxi palette 160cm  - mono reference - Mettre des CORNIERES — IMPERATIF SUR SUPPORT DE PROFONDEUR 120 CM MINIMUM","0004262634":"CHARGEMENT EN FOULEE","0004271167":"Hauteur maximum 1,80m","0004273238":"Hauteur maximum 1,40m","0004275446":"Hauteur maximum 1,80m","0004276019":"hauteur maximum 1,8m","0004292453":"SUR PALETTES MONO REF","0004304715":"Picking 1 colis 1 support 1 palette — *** ATTENTION  ETIQUETTE SPECIFIQUE A COLLER VOIR ADMIN****","0004308554":"Hauteur maximum 1,60m","0004313247":"JUNG 1 colis 1 support 1 palette DG — *** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004313601":"Hauteur maximum 1,60m","0004323104":"*** ATTENTION ETIQUETTE SPECIFIQUE A COLLER VOIR ADM ***","0004325267":"MONO REF  1M80 MAXI","0004325273":"MONO  REF 1M80 MAXI","0004325317":"MONO REF 1m80 MAXI","0004325327":"MONO REF 1m80 MAXI","0004325329":"MONO REF 1m80 MAXI","0004356173":"Hauteur maximum 1,80m","0004358350":"MONO REF 1m80 maxi","0004358369":"MONO REF  1m80 MAXI","0004358370":"MONO  REF 1m80 MAXI","0004358376":"MONO REF 1.80 MAXI","0004376542":"PREPARATION SUR PALETTE SK LE 040226","0004413893":"PREPARATION SUR PALETTE SK  LE 040226","0004771643":"PREPARATION SUR PALETTE SK LE 040226","0004795701":"CHARGEMENT EN FOULEE","0004967101":"PREPARATION SUR PALETTE SK LE 040226-chargement RAIL/ROUTE","0005336157":"PREP PAL","0005379038":"PREP PAL","0005384518":"SUR PALETTE 80*120 DDE JPJ LE 22/12/14 IMPERATIF","0005968566":"1M80 MAX METTRE DES INTERCALAIRES","0005968590":"1M80 MAX METTRE DES INTERCALAIRES SK LE 120624","0005983586":"1M70 MAIL TAJAMAL 17/07/24 CR","0005983620":"1M80 MAIL TAJAMAL 17/07/24 CR — DOUBLE STACK 65' et 70'","0005984458":"CHARGEMENT EN FOULEE","0006020280":"Palette mono référence - Hauteur maximum 2,20m — Lettre de voiture au BL","0006026492":"Palette mono référence - Hauteur maximum 1,80m SAUF TV — FILMER Les palettes meme celles qui sont cerlées — MONO REF 1.80 MAXI de haut TOUT SUR PALETTES tout à filmer","0006032397":"PREP PAL","0006040923":"Hauteur maximum 2m","0006042187":"Hauteur maximum 1,80m","0006053137":"Hauteur maximum 1,90m","0006056167":"Palette mono réf pour la prep brun /Hauteur maximum 1,80m sauf tele — MONO REF BLANC","0006066777":"PaL mono réf- Hauteur max 2m CORNIERES SUR TOUTES LES PAL IMPERATIF","0006076511":"Palette mono référence - Hauteur maximum 1,60m","0006084376":"* ATTENTION VOIR SOPHIE POUR LE PLAN ORTEC *CHARGEMENT EN FOULEE — hauteur 2m10 suite mail justin","0006084844":"CHARGEMENT EN FOULEE","0006085133":"MONO REF LORS DE LA PREP ET DE L EXPE","0006210950":"HAUTEUR MAX 1.80m sur 80*120 ou 100*120 si le produit le permet","0006237030":"Hauteur maximum 1,80m","0006255221":"HAUTEUR MAXI 2M00 / MONO REFERENCE /AUDIO/ VIDEO SUR 80*120 OU 100*120","0006280792":"PREPARATION SUR PALETTE SK LE 040226","0006286233":"Palette mono référence - Hauteur maximum 1,80m — Lettre de voiture au BL","0006286234":"Palette mono référence - Hauteur maximum 1,80m — sur pal 80*120 ou 100*120 si le produit le permet","0006286798":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006293456":"Hauteur maximum 1,80m mono reference- Préparation sur palette 80*120","0006295902":"Palette mono reference hauteur maximum 1,80m -si possible sur 80x120","0006295903":"MONO REF  1m80 MAXI","0006299097":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120","0006448645":"1M80 MAX POUR LES PALETTES PICKING — DOUBLE STACK POUR  65 70 75\"","0006476525":"CHARGEMENT EN FOULEE","0006498863":"PREPARATION SUR PALETTE SK LE 040226","0007083510":"chargement RAIL/ROUTE","0007084775":"CHARGEMENT EN FOULEE","0007090098":"1M85 MAX SK LE 190326  DOUBLE STACK POUR  65 ET 70 POUCES — 1 ref par palette","0007330753":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — lettre de voiture au BL-CHARGEMENT EN FOULEE — !! double stacking 55'' 65'' 70''!!","0007372949":"SUR PALETTE DG","0007394758":"PREPARATIN SUR PALETTE SK LE 040226","0007398006":"PREPARATION SUR PALETTE SK LE 040226 — CHARGEMENT EN FOULEE","0007399103":"chargement RAIL/ROUTE","0007938006":"SUR PALETTE","0008321697":"Lettre de voiture au BL","0008321832":"PREPARATION SUR PALETTE SK LE 040226","0008372072":"Palette 2m20 max demande justin 130819","0008378983":"PREPARATION SUR PALETTE SK LE 040226","0008385062":"Palette mono référence - Hauteur maximum 1,80m si possible sur 80x120 — Lettre de voiture au BL — DOUBLE STACK SUR 55 65 70 75\"","0009223778":"IMPERATIF SUR 80*120 SINON PAS DE DECHARGEMENT / 1 REF PAR PALETTE — HAUTEUR MAX 1M80 — PREP PAL dg 05/10/2018","0009223779":"HAUTEYR MAX 1M80 / PALETTE 80*120 IMPERATIF / PAL MONO REFERENCE — HAUTEUR MAX 1M80 / PAL MONO REFERENCE / 80*120 IMPERATIF — SUR PALETTES dg 05/10/2018","0009223811":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/2018","0009223812":"HAUTEUR MAX 1M80 / PAL MONO REF / 80*120 IMPERATIF — PREP PAL dg 05/10/18","0009235196":"Palette Mono ref / hauteur 2m maxi-CHARGEMENT EN FOULEE — pas d etetage sur ref sup ou egale à 55'","0009338220":"hauteur max 2m suite mail justin 130819-CHARGEMENT EN FOULEE — MO A REPALETISER SUR 80*120 ET CERCLAGE SK LE 241125","0009398792":"MONO REFERENCE / MAX 1M80"};
@@ -634,6 +676,8 @@ function railColor(code){let s=0;for(const c of code)s+=c.charCodeAt(0);return G
 function autoStatus(r){if(r.depart)return'termine';if(r.charg)return'cours';if(r.arrivee||r.quai)return'attente';if(r.statut==='retann')return'retann';return'nonpresente';}
 function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 /* Statut effectif affiché : « Retard » automatique quand le RDV du JOUR est dépassé de 30 min sans arrivée */
+const MOTIFS=['','Trafic','Panne véhicule','Transporteur','Client (RDV déplacé)','Douane','Météo','Interne site','Autre'];
+function isLateArrival(r){const a=toMin(r.arrivee),v=toMin(r.rdv);return a!=null&&v!=null&&a>v+30;}
 function livTxt(r){if(!r.livJ&&!r.livH)return'';const d=r.livJ?(r.livJ.slice(8,10)+'/'+r.livJ.slice(5,7)):'';return(d+' '+(r.livH||'')).trim();}
 function isFouleeLiv(r){return !!r.livJ&&r.livJ===state.currentDate;}
 function livCell(r){const t=livTxt(r);return'<td><span class="ro '+(t?'':'empty')+(isFouleeLiv(r)?' foulee':'')+'"'+(isFouleeLiv(r)?' title="Livraison en foulée : chargée et livrée le même jour"':'')+'>'+(isFouleeLiv(r)?'🔥 ':'')+(t||'\u2014')+'</span></td>';}
@@ -644,7 +688,7 @@ function effStatus(r){
   }
   return r.statut;
 }
-function propagate(row){if(!row.groupage)return;dayData().rows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
+function propagate(row){if(!row.groupage)return;dayData().rows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;r.motif=row.motif;}});}
 function setStamp(row,f){row[f]=row[f]?'':nowHM();row.statut=autoStatus(row);propagate(row);touch();render();}
 function touch(){dayData().updated=new Date().toISOString();save();}
 
@@ -716,7 +760,8 @@ function mergeRows(target,incoming,replace,cl){
   return others.concat(incoming.map(r=>{const p=ex.get(keyOf(r));if(p&&p.length){const o=p.shift();return Object.assign({},r,{id:o.id,quai:o.quai,arrivee:o.arrivee,charg:o.charg,depart:o.depart,statut:o.statut,rdv:o.rdv,rdv0:o.rdv0||o.rdv});}return r;}));}
 
 function buildUnits(rows){const map=new Map();rows.forEach(r=>{const k=r.groupage?('G:'+(r.cl||'')+':'+r.groupage):('R:'+r.id);(map.get(k)||map.set(k,[]).get(k)).push(r);});return[...map.values()].map(g=>({rows:g,rep:g[0]}));}
-function kpiFor(units,tol){let total=units.length,pres=0,done=0,aOn=0,aN=0,cOn=0,cN=0,dS=0,dN=0;units.forEach(u=>{const r=u.rep,rdv=toMin(r.rdv);if(r.arrivee||r.quai||r.charg||r.depart)pres++;if(r.depart)done++;const a=toMin(r.arrivee);if(rdv!=null&&a!=null){aN++;if(a<=rdv+tol)aOn++;}const c=toMin(r.charg);if(rdv!=null&&c!=null){cN++;if(c<=rdv+tol)cOn++;dS+=c-rdv;dN++;}});return{total,pres,done,presRate:total?Math.round(pres/total*100):0,arrRate:aN?Math.round(aOn/aN*100):null,chgRate:cN?Math.round(cOn/cN*100):null,avgDelay:dN?Math.round(dS/dN):null};}
+function dashCLI(){return state.mode==='client'||!!(session&&session.role==='client');}
+function kpiFor(units,tol){let total=units.length,pres=0,done=0,aOn=0,aN=0,cOn=0,cN=0,dS=0,dN=0,aS=0;units.forEach(u=>{const r=u.rep,rdv=toMin(r.rdv);if(r.arrivee||r.quai||r.charg||r.depart)pres++;if(r.depart)done++;const a=toMin(r.arrivee);if(rdv!=null&&a!=null){aN++;if(a<=rdv+tol)aOn++;aS+=a-rdv;}const c=toMin(r.charg);if(rdv!=null&&c!=null){cN++;if(c<=rdv+tol)cOn++;dS+=c-rdv;dN++;}});return{total,pres,done,presRate:total?Math.round(pres/total*100):0,arrRate:aN?Math.round(aOn/aN*100):null,chgRate:cN?Math.round(cOn/cN*100):null,avgDelay:dN?Math.round(dS/dN):null,avgArr:aN?Math.round(aS/aN):null};}
 
 const COLS=['DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR CLIENT','LIVRAISON','QUAI','H. ARRIVÉE','H. CHARG.','H. DÉPART','STATUT'];
 function visibleRows(){const q=($('#searchInput').value||'').toLowerCase(),tf=$('#transpFilter').value;
@@ -742,7 +787,7 @@ function render(){
   document.querySelector('#fluxSeg [data-flux="plan"]').style.display=isClient?'none':'';
   const isAdmin=!!(session&&session.role==='admin');
   $('#toolbar').style.display='flex';
-  $('#dashBtn').style.display=(!isClient&&!isCmp&&!isPlan)?'':'none';
+  $('#dashBtn').style.display=(!isCmp&&!isPlan)?'':'none';
   $('#importBtn').style.display=(!isClient&&!isCmp&&!isPlan)?'':'none';
   $('#crBtn').style.display=(!isClient&&state.flux==='out')?'':'none';
   $('#usersBtn').style.display=isAdmin?'':'none';
@@ -752,6 +797,7 @@ function render(){
   $('#scanBtn').style.display=isClient?'none':'';
   $('#labelsBtn').style.display=(!isClient&&!isCmp&&!isPlan)?'':'none';
   $('#pochBtn').style.display=(!isClient&&!isCmp&&!isPlan)?'':'none';
+  $('#tvBtn').style.display=!isClient?'':'none';
   // Filtre client : exploitation/admin uniquement (les comptes Client sont cloisonnés d'office)
   const cf=$('#clientFilter');
   $('#clientFilterField').style.display=sessionClient()?'none':'';
@@ -793,7 +839,7 @@ function render(){
         '<td class="statecell">'+r.departure+badge+cmtBtn+'</td>'+
         '<td class="rdv">'+(r.rdv||'—')+(r.rdv0&&r.rdv0!==r.rdv?'<span class="rdvmod" title="RDV d\'origine : '+r.rdv0+'">🕐</span>':'')+'</td><td>'+(r.transporteur||'—')+'</td>'+
         '<td class="grpcode">'+(r.groupage||'')+'</td><td class="dest">'+(r.destinataire||'—')+'</td>'+
-        '<td class="cr">'+warn+(r.cr||'')+'</td>'+
+        '<td class="cr">'+warn+(r.cr||'')+'</td>'+livCell(r)+
         '<td><span class="ro '+(r.quai?'':'empty')+'">'+(r.quai||'—')+'</span></td>'+
         '<td><span class="ro '+(r.arrivee?'':'empty')+'">'+(r.arrivee||'—')+'</span></td>'+
         '<td><span class="ro '+(r.charg?'':'empty')+'">'+(r.charg||'—')+'</span></td>'+
@@ -849,6 +895,7 @@ function render(){
     '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Terminé <b>'+c.termine+'</b></div>';
 {const _rt=scopedRows().filter(r=>{const e=effStatus(r);return e==='retard'||e==='retann';}).length;if(_rt)$('#stats').innerHTML+='<div class="stat" style="background:#fdecea;border-color:#c0392b"><span class="dot" style="background:#c0392b"></span>Retard <b>'+_rt+'</b></div>';}
 {const _fl=scopedRows().filter(isFouleeLiv).length;if(_fl)$('#stats').innerHTML+='<div class="stat" style="background:#fff3e6;border-color:#b8632a"><span class="dot" style="background:#b8632a"></span>🔥 Foulée <b>'+_fl+'</b></div>';}
+{const _cq=courQueue('out');if(_cq.length){const mx=Math.max(...(_cq.map(c=>c.wait)));$('#stats').innerHTML+='<div class="stat" style="background:'+(mx>30?'#fdecea':'#fff8e6')+';border-color:'+(mx>30?'#c0392b':'#b8860b')+'" title="'+_cq.map(c=>(c.r.groupage||c.r.departure)+' : '+c.wait+' min').join('\n')+'"><span class="dot" style="background:'+(mx>30?'#c0392b':'#b8860b')+'"></span>🚧 Cour <b>'+_cq.length+'</b> (max '+mx+' min)</div>';}}
   $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
   $('#countLine').textContent=units.length+' départ(s) (groupage = 1) · '+rows.length+' ligne(s) affichée(s) · '+all.length+' commande(s)';
   $('#syncState').className='sync-state '+(fb.enabled?'on':'local');
@@ -860,22 +907,23 @@ function rateHtml(v){return v===null?'<span class="rate n">—</span>':'<span cl
 function delayHtml(v){if(v===null)return'<span style="color:var(--muted)">—</span>';if(v>0)return'<span class="delay-pos">+'+v+' min</span>';if(v<0)return'<span class="delay-neg">'+v+' min</span>';return'<span class="delay-neg">à l\'heure</span>';}
 function renderDash(){
   if(state.flux==='in'){renderDashIn();return;}
-  $('#dashIntro').textContent='Respect des heures = heure réelle ≤ RDV + tolérance. Les groupages comptent pour 1 camion.';
+  $('#dashIntro').textContent=dashCLI()?'Respect des heures = heure d\'arriv\u00e9e \u2264 RDV + tol\u00e9rance. Les groupages comptent pour 1 camion.':'Respect des heures = heure réelle ≤ RDV + tolérance. Les groupages comptent pour 1 camion.';
   $('#dashSec1').textContent='Par type de départ (DB / DW)';$('#dashSec2').textContent='Par transporteur';
   const tol=parseInt($('#tolInput').value)||0;
-  const all=scopedRows(),units=buildUnits(all);
-  $('#dashDate').textContent=fmtFR(state.currentDate)+(clientScope()?' — '+clientScope():' — tous clients');
+  const all=dashRows(),units=buildUnits(all);
+  $('#dashDate').textContent=dashPeriodLabel()+(dashPeriod?' ('+dashDaysCount()+' j de données)':'')+(clientScope()?' — '+clientScope():' — tous clients');
+  const CLI=dashCLI();
   const g=kpiFor(units,tol);
   $('#dashCards').innerHTML=
     '<div class="card"><div class="k">Camions</div><div class="v">'+g.total+'</div><div class="sub">'+all.length+' commandes</div></div>'+
     '<div class="card '+(g.presRate>=90?'good':g.presRate>=70?'warn':'bad')+'"><div class="k">Présentation</div><div class="v">'+g.presRate+'%</div><div class="sub">'+g.pres+'/'+g.total+' présentés</div></div>'+
     '<div class="card"><div class="k">Terminés</div><div class="v">'+g.done+'</div><div class="sub">départs effectués</div></div>'+
     '<div class="card '+(g.arrRate===null?'':g.arrRate>=90?'good':g.arrRate>=70?'warn':'bad')+'"><div class="k">Ponctualité arrivée</div><div class="v">'+(g.arrRate===null?'—':g.arrRate+'%')+'</div><div class="sub">arrivée ≤ RDV+'+tol+'</div></div>'+
-    '<div class="card '+(g.chgRate===null?'':g.chgRate>=90?'good':g.chgRate>=70?'warn':'bad')+'"><div class="k">Ponctualité charg.</div><div class="v">'+(g.chgRate===null?'—':g.chgRate+'%')+'</div><div class="sub">charg. ≤ RDV+'+tol+'</div></div>'+
-    '<div class="card"><div class="k">Écart moyen charg.</div><div class="v" style="font-size:22px">'+(g.avgDelay===null?'—':(g.avgDelay>0?'+':'')+g.avgDelay+' min')+'</div><div class="sub">vs RDV</div></div>';
+    (CLI?'':'<div class="card '+(g.chgRate===null?'':g.chgRate>=90?'good':g.chgRate>=70?'warn':'bad')+'"><div class="k">Ponctualité charg.</div><div class="v">'+(g.chgRate===null?'—':g.chgRate+'%')+'</div><div class="sub">charg. ≤ RDV+'+tol+'</div></div>')+
+    (()=>{const val=CLI?g.avgArr:g.avgDelay;return '<div class="card"><div class="k">Écart moyen '+(CLI?'arrivée':'charg.')+'</div><div class="v" style="font-size:22px">'+(val===null?'—':(val>0?'+':'')+val+' min')+'</div><div class="sub">vs RDV</div></div>';})();
 
-  const head='<thead><tr><th>Groupe</th><th>Camions</th><th>Présentation</th><th>Ponct. arrivée</th><th>Ponct. charg.</th><th>Écart moyen</th><th>Terminés</th></tr></thead>';
-  const row=(lbl,k)=>'<tr><td class="lbl">'+lbl+'</td><td>'+k.total+'</td><td>'+rateHtml(k.presRate)+'</td><td>'+rateHtml(k.arrRate)+'</td><td>'+rateHtml(k.chgRate)+'</td><td>'+delayHtml(k.avgDelay)+'</td><td>'+k.done+'</td></tr>';
+  const head='<thead><tr><th>Groupe</th><th>Camions</th><th>Présentation</th><th>Ponct. arrivée</th>'+(CLI?'':'<th>Ponct. charg.</th>')+'<th>Écart moyen'+(CLI?' arriv\u00e9e':'')+'</th><th>Terminés</th></tr></thead>';
+  const row=(lbl,k)=>'<tr><td class="lbl">'+lbl+'</td><td>'+k.total+'</td><td>'+rateHtml(k.presRate)+'</td><td>'+rateHtml(k.arrRate)+'</td>'+(CLI?'':'<td>'+rateHtml(k.chgRate)+'</td>')+'<td>'+delayHtml(CLI?k.avgArr:k.avgDelay)+'</td><td>'+k.done+'</td></tr>';
   const types={};units.forEach(u=>{const t=(u.rep.departure||'').slice(0,2).toUpperCase();(types[t]=types[t]||[]).push(u);});
   let bt=head+'<tbody>';Object.keys(types).sort().forEach(t=>{bt+=row(t==='DB'?'DB':t==='DW'?'DW':t||'(?)',kpiFor(types[t],tol));});bt+='</tbody>';
   $('#dashByType').innerHTML=bt;
@@ -886,14 +934,15 @@ function renderDash(){
 }
 function exportDash(){
   if(state.flux==='in'){exportInDash();return;}
-  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(scopedRows());
+  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(dashRows());
   const wb=XLSX.utils.book_new();
-  const mk=groups=>{const d=[['Groupe','Camions','Présentés','Tx présentation %','Ponct. arrivée %','Ponct. charg. %','Écart moyen (min)','Terminés']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,k.chgRate,k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
+  const mk=groups=>{const CLI=dashCLI();const d=[['Groupe','Camions','Présentés','Tx présentation %','Ponct. arrivée %',(CLI?'':'Ponct. charg. %'),'Écart moyen'+(CLI?' arrivée':'')+' (min)','Terminés']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,CLI?'':k.chgRate,CLI?k.avgArr:k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
   const types={};units.forEach(u=>{const t=(u.rep.departure||'').slice(0,2).toUpperCase();(types[t]=types[t]||[]).push(u);});
   const byT={};units.forEach(u=>{const t=u.rep.transporteur||'(sans)';(byT[t]=byT[t]||[]).push(u);});
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(types).sort()),'Par type');
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(byT).sort((a,b)=>b[1].length-a[1].length)),'Par transporteur');
   XLSX.utils.book_append_sheet(wb,capacitySheet(),'Capacité');
+  XLSX.utils.book_append_sheet(wb,transpSheet(),'Transporteurs');
   XLSX.utils.book_append_sheet(wb,chargeSheet(),'Charge');
   const tws=trendsSheet();if(tws)XLSX.utils.book_append_sheet(wb,tws,'Tendances');
   XLSX.writeFile(wb,'Dashboard_ponctualite_'+state.currentDate+'.xlsx');
@@ -918,7 +967,28 @@ async function initFb(cfg){
   }catch(e){alert('Connexion Firebase impossible.\n'+e.message);fb.enabled=false;return false;}
 }
 function fbDataPath(){return 'planning/'+state.currentDate;}
-function pushFb(){if(!fb.enabled||fb.suppress)return;if(session&&session.role==='client')return;
+let bridgeLast=0;
+function bridgePublish(){
+  if(!fb.enabled)return;
+  const now=Date.now();if(now-bridgeLast<30000)return;bridgeLast=now;
+  try{
+    const dt=state.currentDate;
+    const day=dayData();
+    const outU=buildUnits(day.rows).map(u=>u.rep),inU=inUnits(day.inRows);
+    const cnt=us=>{let ret=0,ter=0;us.forEach(r=>{const e=effStatus(r);if(e==='retard'||e==='retann')ret++;if(r.statut==='termine')ter++;});return{ret,ter};};
+    const co=cnt(outU),ci=cnt(inU);
+    const n=new Date(),nm=n.getHours()*60+n.getMinutes();
+    const cour=[...day.rows,...day.inRows].filter(r=>r.arrivee&&!r.quai&&!r.depart);
+    const courMax=cour.length?Math.max(...cour.map(r=>{const a=toMin(r.arrivee);return a!=null?Math.max(0,nm-a):0;})):0;
+    fb.db.ref('bridge/planning/'+dt).set({
+      ts:new Date().toISOString(),date:dt,version:APP_VERSION,
+      out:{total:outU.length,termine:co.ter,retard:co.ret,foulee:outU.filter(isFouleeLiv).length},
+      inn:{total:inU.length,termine:ci.ter,retard:ci.ret},
+      cour:{n:cour.length,maxMin:courMax}
+    });
+  }catch(e){}
+}
+function pushFb(){bridgePublish();if(!fb.enabled||fb.suppress)return;if(session&&session.role==='client')return;
   const wr=(path,val)=>{try{fb.db.ref(path).set(val);}catch(e){console.error('Écriture Firebase refusée ('+path+')',e);}};
   wr(fbDataPath(),normalizeDay(dayData()));wr('meta/users',state.users);wr('meta/crmap',state.crMap);wr('meta/settings',state.settings);wr('meta/clients',state.clients||[]);}
 function subData(){if(fb.ref)fb.ref.off();if(!fb.enabled)return;const dt=state.currentDate;fb.ref=fb.db.ref('planning/'+dt);fb.ref.on('value',s=>{let v=s.val();if(!v)return;v=normalizeDay(v);
@@ -1015,6 +1085,172 @@ $('#fluxSeg').addEventListener('click',e=>{const b=e.target.closest('button');if
 $('#dateInput').onchange=e=>{state.currentDate=e.target.value;activeFilter='';if(fb.enabled)subData();render();};
 $('#searchInput').oninput=render;$('#transpFilter').onchange=render;$('#clientFilter').onchange=render;
 $('#printBtn').onclick=()=>window.print();$('#exportBtn').onclick=exportXLSX;
+/* ===== Dashboard multi-périodes ===== */
+let dashPeriod=null;
+function dashRows(){
+  if(!dashPeriod)return scopedRows();
+  const sc=clientScope();let a=[];
+  dashPeriod.dates.forEach(dt=>{const d=dashPeriod.days[dt];if(!d)return;a=a.concat(d.rows.filter(r=>!sc||(r.cl||'')===sc));});
+  return a;
+}
+function dashInRows(){
+  if(!dashPeriod)return scopedInRows();
+  const sc=clientScope();let a=[];
+  dashPeriod.dates.forEach(dt=>{const d=dashPeriod.days[dt];if(!d)return;a=a.concat(d.inRows.filter(r=>!sc||(r.cl||'')===sc));});
+  return a;
+}
+function dashDaysCount(){return dashPeriod?Math.max(1,dashPeriod.dates.filter(dt=>dashPeriod.days[dt]).length):1;}
+function dashPeriodLabel(){return dashPeriod?dashPeriod.label:('journée du '+fmtFR(state.currentDate));}
+function refreshDashAll(){renderDash();renderCapacity();renderTransp();renderCharge();}
+function loadDashPeriod(dates,label){
+  $('#dashDate').textContent='Chargement de '+dates.length+' journées…';
+  const get=dt=>{
+    if(fb.enabled){try{return fb.db.ref('planning/'+dt).once('value').then(sn=>[dt,sn.val()||state.days[dt]||null]).catch(()=>[dt,state.days[dt]||null]);}catch(e){}}
+    return Promise.resolve([dt,state.days[dt]||null]);
+  };
+  Promise.all(dates.map(get)).then(res=>{
+    const days={};
+    res.forEach(([dt,raw])=>{if(raw){const d=normalizeDay(JSON.parse(JSON.stringify(raw)));if(d.rows.length||d.inRows.length)days[dt]=d;}});
+    dashPeriod={label,dates,days};
+    refreshDashAll();
+  });
+}
+function dashDatesRange(from,to){
+  const a=[];let d=new Date(from+'T12:00:00');const end=new Date(to+'T12:00:00');
+  let guard=0;
+  while(d<=end&&guard++<62){a.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}
+  return a;
+}
+$('#dashPeriodSel').onchange=()=>{
+  const v=$('#dashPeriodSel').value;
+  $('#dashRange').style.display=v==='custom'?'inline-flex':'none';
+  if(v==='day'){dashPeriod=null;refreshDashAll();return;}
+  if(v==='week'){const to=state.currentDate;const f=new Date(to+'T12:00:00');f.setDate(f.getDate()-6);loadDashPeriod(dashDatesRange(f.toISOString().slice(0,10),to),'7 jours au '+fmtFR(to));}
+  if(v==='month'){const mo=state.currentDate.slice(0,7);loadDashPeriod(dashDatesRange(mo+'-01',state.currentDate),'mois '+mo);}
+};
+$('#dashRangeGo').onclick=()=>{
+  const f=$('#dashFrom').value,t=$('#dashTo').value;
+  if(!f||!t||f>t){alert('Choisis une période valide (du → au).');return;}
+  const dates=dashDatesRange(f,t);
+  if(dates.length>62){alert('Période limitée à 62 jours.');return;}
+  loadDashPeriod(dates,'du '+fmtFR(f)+' au '+fmtFR(t));
+};
+$('#dashRawExp').onclick=()=>{
+  const wb=XLSX.utils.book_new();
+  let rows,inn;
+  if(dashPeriod){
+    const sc=clientScope();rows=[];inn=[];
+    dashPeriod.dates.forEach(dt=>{const d=dashPeriod.days[dt];if(!d)return;
+      d.rows.forEach(r=>{if(!sc||(r.cl||'')===sc){const x=Object.assign({},r);x._dt=dt;rows.push(x);}});
+      d.inRows.forEach(r=>{if(!sc||(r.cl||'')===sc){const x=Object.assign({},r);x._dt=dt;inn.push(x);}});
+    });
+  }else{rows=dashRows();inn=dashInRows();}
+  const d1=[['DATE','CLIENT','DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR','LIVRAISON','QUAI','ARRIVÉE','CHARG','DÉPART','STATUT','MOTIF']];
+  rows.forEach(r=>d1.push([r._dt||state.currentDate,r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,livTxt(r),r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]||r.statut,r.motif||'']));
+  const d2=[['DATE','CLIENT','RDV','CONTENEUR','MESSAGE','SD','QTÉ','QUAI','ARRIVÉE','DÉCHARG','DÉPART','STATUT','MOTIF']];
+  inn.forEach(r=>d2.push([r._dt||state.currentDate,r.cl||'',r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]||r.statut,r.motif||'']));
+  const w1=XLSX.utils.aoa_to_sheet(d1);w1['!cols']=d1[0].map(()=>({wch:13}));
+  const w2=XLSX.utils.aoa_to_sheet(d2);w2['!cols']=d2[0].map(()=>({wch:13}));
+  XLSX.utils.book_append_sheet(wb,w1,'Expéditions');
+  XLSX.utils.book_append_sheet(wb,w2,'Réceptions');
+  XLSX.writeFile(wb,'Extraction_'+(dashPeriod?dashPeriod.dates[0]+'_'+dashPeriod.dates[dashPeriod.dates.length-1]:state.currentDate)+'.xlsx');
+};
+/* ===== File d'attente cour (arrivés sans quai) ===== */
+function courQueue(flux){
+  const rows=flux==='in'?inUnits(scopedInRows()):buildUnits(scopedRows()).map(u=>u.rep);
+  const n=new Date(),nm=n.getHours()*60+n.getMinutes();
+  return rows.filter(r=>r.arrivee&&!r.quai&&!r.depart).map(r=>{const a=toMin(r.arrivee);return{r,wait:a!=null?Math.max(0,nm-a):0};}).sort((a,b)=>b.wait-a.wait);
+}
+/* ===== Écran de quai (TV) ===== */
+let tvTimer=null;
+function tvRender(){
+  const el=$('#tvOverlay');if(!el||el.style.display==='none')return;
+  const n=new Date();
+  const units=[
+    ...buildUnits(scopedRows()).map(u=>({r:u.rep,flux:'out'})),
+    ...inUnits(scopedInRows()).map(r=>({r,flux:'in'}))
+  ];
+  const act=units.filter(x=>x.r.statut!=='termine');
+  const done=units.filter(x=>x.r.statut==='termine');
+  const key=x=>toMin(x.r.arrivee)??toMin(x.r.rdv)??1e9;
+  act.sort((a,b)=>key(a)-key(b));
+  const lateN=act.filter(x=>effStatus(x.r)==='retard'||effStatus(x.r)==='retann').length;
+  const cour=[...courQueue('out'),...courQueue('in')];
+  const courMax=cour.length?Math.max(...cour.map(c=>c.wait)):0;
+  const rows=[...act,...done.slice(-4)].slice(0,16);
+  el.innerHTML='<button class="tvclose" id="tvClose">✕ Échap</button>'+
+    '<div class="tvhead"><span class="tvt">🏭 GXO Lagny — Quais '+fmtFR(state.currentDate)+'</span>'+
+    '<span class="tvchip">'+act.length+' à traiter</span>'+
+    (lateN?'<span class="tvchip red">⏰ '+lateN+' retard(s)</span>':'')+
+    (cour.length?'<span class="tvchip '+(courMax>30?'red':'amb')+'">🚧 Cour : '+cour.length+' camion(s), attente max '+courMax+' min</span>':'')+
+    '<span class="tvclock">'+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+'</span></div>'+
+    '<table class="tvgrid"><tr><th>RDV</th><th>Arrivée</th><th></th><th>Dossier</th><th>Transporteur / Transport</th><th>Quai</th><th>Statut</th></tr>'+
+    rows.map(x=>{const r=x.r,e=effStatus(r);
+      return '<tr class="'+(e==='retard'||e==='retann'?'tvlate':(r.statut==='termine'?'tvdone':''))+'">'+
+      '<td>'+(r.rdv||'—')+'</td><td>'+(r.arrivee||'—')+'</td>'+
+      '<td>'+(x.flux==='in'?'📥':'📤')+'</td>'+
+      '<td>'+((x.flux==='in'?(r.container||''):(r.groupage||r.departure||'')).replace(/</g,'&lt;'))+(x.flux==='out'&&isFouleeLiv(r)?' 🔥':'')+'</td>'+
+      '<td>'+((x.flux==='in'?(r.message||''):(r.transporteur||'')).replace(/</g,'&lt;'))+'</td>'+
+      '<td>'+(r.quai||'—')+'</td>'+
+      '<td><span class="tvpill '+e+'">'+(STATUSES[e]||e)+'</span></td></tr>';}).join('')+
+    '</table>';
+  $('#tvClose').onclick=tvClose;
+}
+function tvOpen(){
+  $('#tvOverlay').style.display='block';
+  tvRender();
+  tvTimer=setInterval(tvRender,30000);
+  if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});
+}
+function tvClose(){
+  $('#tvOverlay').style.display='none';
+  if(tvTimer){clearInterval(tvTimer);tvTimer=null;}
+  if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+}
+$('#tvBtn').onclick=tvOpen;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')tvClose();});
+/* ===== Fiabilité transporteurs & motifs de retard ===== */
+let trendTr=null,trendMotifs=null,trendTrDays=0;
+function accTransp(units,tol,tr,mo){
+  units.forEach(r=>{
+    const name=(r.transporteur||'—').trim()||'—';
+    const a=toMin(r.arrivee),v=toMin(r.rdv);
+    const t=tr[name]=tr[name]||{n:0,ok:0,late:0,lateMin:0,off:0};
+    t.n++;
+    if(a!=null&&v!=null){
+      const dl=a-v;
+      if(dl<=tol)t.ok++;else{t.late++;t.lateMin+=dl;}
+      if(dl>30)t.off++;
+    }
+    if(r.motif&&(effStatus(r)==='retard'||effStatus(r)==='retann'||(a!=null&&v!=null&&a-v>30)))mo[r.motif]=(mo[r.motif]||0)+1;
+  });
+}
+function renderTransp(){
+  const el=$('#trspWrap');if(!el)return;
+  const tol=parseInt($('#tolInput').value)||0;
+  let tr={},mo={},scope;
+  if(trendTr){tr=trendTr;mo=trendMotifs||{};scope='période analysée ('+trendTrDays+' jour(s))';}
+  else{accTransp(buildUnits(dashRows()).map(u=>u.rep),tol,tr,mo);scope=dashPeriodLabel()+(dashPeriod?'':' — change la période en haut ou lance 📈 Tendances');}
+  const names=Object.keys(tr).sort((a,b)=>tr[b].n-tr[a].n);
+  if(!names.length){el.innerHTML='<div class="chleg">Aucun camion expédition sur le périmètre.</div>';return;}
+  let rows='';
+  names.forEach(n=>{const t=tr[n];const arr=t.ok+t.late;const pct=arr?Math.round(t.ok*100/arr):null;
+    rows+='<tr><td class="slot">'+n.replace(/</g,'&lt;')+'</td><td>'+t.n+'</td><td class="trpct '+pctCls(pct)+'">'+(pct===null?'—':pct+' %')+'</td><td>'+(t.late?Math.round(t.lateMin/t.late)+' min':'—')+'</td><td>'+(t.off?'<b style="color:#c0392b">'+t.off+'</b>':'')+'</td></tr>';});
+  const moKeys=Object.keys(mo).sort((a,b)=>mo[b]-mo[a]);
+  const moHtml=moKeys.length?'<div class="capverdict" style="margin-top:6px">📋 Motifs de retard : '+moKeys.map(k=>'<b>'+k+'</b> ×'+mo[k]).join(' · ')+'</div>':'';
+  el.innerHTML='<div class="chleg">'+scope+' · tolérance '+tol+' min · « hors créneau » = RDV +30 min</div>'+
+    '<div style="overflow:auto"><table class="capgrid"><tr><th>Transporteur</th><th>Camions</th><th>Ponctualité</th><th>Retard moyen</th><th>Hors créneau</th></tr>'+rows+'</table></div>'+moHtml;
+}
+function transpSheet(){
+  const tol=parseInt($('#tolInput').value)||0;
+  let tr={},mo={};
+  if(trendTr){tr=trendTr;mo=trendMotifs||{};}else accTransp(buildUnits(dashRows()).map(u=>u.rep),tol,tr,mo);
+  const d=[['Fiabilité transporteurs — '+(trendTr?('période '+trendTrDays+' j'):fmtFR(state.currentDate))+' (tolérance '+tol+' min)'],['Transporteur','Camions','À l\'heure','En retard','Ponctualité %','Retard moyen (min)','Hors créneau (>30 min)']];
+  Object.keys(tr).sort((a,b)=>tr[b].n-tr[a].n).forEach(n=>{const t=tr[n];const arr=t.ok+t.late;d.push([n,t.n,t.ok,t.late,arr?Math.round(t.ok*100/arr):'',t.late?Math.round(t.lateMin/t.late):'',t.off]);});
+  const moKeys=Object.keys(mo);
+  if(moKeys.length){d.push([]);d.push(['Motifs de retard','Occurrences']);moKeys.sort((a,b)=>mo[b]-mo[a]).forEach(k=>d.push([k,mo[k]]));}
+  const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:26},{wch:9},{wch:9},{wch:10},{wch:13},{wch:17},{wch:20}];return ws;
+}
 /* ===== Tendances multi-jours (volumes, ponctualité, saturation, équilibrage) ===== */
 let trendCache=null;
 function trendDayStats(dt,raw){
@@ -1024,6 +1260,7 @@ function trendDayStats(dt,raw){
   const inRows=day.inRows.filter(r=>!scope||(r.cl||'')===scope);
   const tol=parseInt($('#tolInput').value)||0;
   const outU=buildUnits(rows).map(u=>u.rep),inU=inUnits(inRows);
+  if(trendDayStats._acc)accTransp(outU,tol,trendDayStats._acc.tr,trendDayStats._acc.mo);
   const stat=us=>{let ok=0,late=0,lateMin=0;us.forEach(r=>{const m=toMin(r.rdv),a=toMin(r.arrivee);if(m==null||a==null)return;const dl=a-m;if(dl<=tol)ok++;else{late++;lateMin+=dl;}});return{ok,late,lateMin};};
   const so=stat(outU),si=stat(inU);
   // Créneaux saturés (≥90 %) sur les capacités paramétrées
@@ -1044,9 +1281,12 @@ function loadTrends(){
     if(fb.enabled){try{return fb.db.ref('planning/'+dt).once('value').then(s=>[dt,s.val()]).catch(()=>[dt,state.days[dt]||null]);}catch(e){}}
     return Promise.resolve([dt,state.days[dt]||null]);
   };
+  trendDayStats._acc={tr:{},mo:{}};
   Promise.all(dates.map(get)).then(res=>{
     trendCache=res.map(([dt,raw])=>trendDayStats(dt,raw)).filter(x=>x.out+x.inn>0);
-    renderTrends();
+    trendTr=trendDayStats._acc.tr;trendMotifs=trendDayStats._acc.mo;trendTrDays=trendCache.length;
+    trendDayStats._acc=null;
+    renderTrends();renderTransp();
   });
 }
 function pctCls(p){return p===null?'':(p>=90?'g':(p>=75?'w':'b'));}
@@ -1100,8 +1340,9 @@ const DEFAULT_CAP={6:9,7:9,8:9,9:9,10:9,11:9,12:9,13:6,14:9,15:9,16:9,17:4,18:7}
 function capOf(flux,h){const m=(flux==='in'?state.settings.capIn:state.settings.capOut)||{};const v=m[h];return v===undefined||v===''?(DEFAULT_CAP[h]!==undefined?DEFAULT_CAP[h]:null):(parseInt(v)||0);}
 function capacityData(flux){
   const tol=parseInt($('#tolInput').value)||0;
-  const units=flux==='in'?inUnits(scopedInRows()):buildUnits(scopedRows()).map(u=>u.rep);
-  const slots={};CAP_HOURS.forEach(h=>slots[h]={cap:capOf(flux,h),res:0,ok:0,late:0,lateMin:0});
+  const units=flux==='in'?inUnits(dashInRows()):buildUnits(dashRows()).map(u=>u.rep);
+  const nD=dashDaysCount();
+  const slots={};CAP_HOURS.forEach(h=>{const c0=capOf(flux,h);slots[h]={cap:c0==null?null:c0*nD,res:0,ok:0,late:0,lateMin:0};});
   let other=0;
   units.forEach(r=>{const m=toMin(r.rdv);if(m==null){other++;return;}
     const h=Math.floor(m/60);if(!slots[h]){other++;return;}
@@ -1131,7 +1372,7 @@ function renderCapacity(){
     const ps=Math.round(satLate*100/satA),po=Math.round(othLate*100/othA);
     verdict='<div class="capverdict">🔎 Créneaux saturés (≥90 %) : <b>'+ps+'%</b> de camions en retard ('+satLate+'/'+satA+') — autres créneaux : <b>'+po+'%</b> ('+othLate+'/'+othA+').'+(ps>po+10?' Les retards se concentrent sur les créneaux saturés → argument chiffré pour <b>lisser la charge</b>.':'')+'</div>';
   }else if(!c.units)verdict='<div class="capverdict">Aucun camion sur cette journée.</div>';
-  $('#capWrap').innerHTML='<div class="chleg" style="margin:2px 0 8px">Flux '+(flux==='in'?'📥 Réception':'📤 Expédition')+' — tolérance retard : RDV + '+c.tol+' min · capacités réglables dans ⚙️ Paramètres'+(c.other?' · '+c.other+' camion(s) hors 6h-18h ou sans RDV':'')+'</div>'+
+  $('#capWrap').innerHTML='<div class="chleg" style="margin:2px 0 8px">Flux '+(flux==='in'?'📥 Réception':'📤 Expédition')+' — '+dashPeriodLabel()+(dashPeriod?' (capacité × '+dashDaysCount()+' j)':'')+' — tolérance retard : RDV + '+c.tol+' min · capacités réglables dans ⚙️ Paramètres'+(c.other?' · '+c.other+' camion(s) hors 6h-18h ou sans RDV':'')+'</div>'+
     '<div style="overflow:auto"><table class="capgrid">'+head+body+'</table></div>'+verdict;
 }
 function capacitySheet(){
@@ -1147,7 +1388,7 @@ function chargeBounds(){const t1=state.settings.chargeT1||'13:00',t2=state.setti
 function inUnits(rows){const map=new Map();rows.forEach(r=>{const k=(r.cl||'')+':'+(r.container||r.id);if(!map.has(k))map.set(k,r);});return[...map.values()];}
 function chargeData(){
   const[t1,t2]=chargeBounds(),m1=toMin(t1),m2=toMin(t2);
-  const outU=buildUnits(scopedRows()).map(u=>u.rep),inU=inUnits(scopedInRows());
+  const outU=buildUnits(dashRows()).map(u=>u.rep),inU=inUnits(dashInRows());
   const bucket=r=>{const m=toMin(r.rdv);return m==null?3:(m<m1?0:(m<m2?1:2));};
   const P=[[0,0],[0,0],[0,0],[0,0]];   // [IN,OUT] x {avant t1, t1-t2, après t2, sans RDV}
   inU.forEach(r=>P[bucket(r)][0]++);outU.forEach(r=>P[bucket(r)][1]++);
@@ -1205,8 +1446,8 @@ function chargeSheet(){
   const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:16},{wch:7},{wch:7},{wch:8},{wch:10}];return ws;
 }
 $('#chT1').onchange=$('#chT2').onchange=()=>{state.settings.chargeT1=$('#chT1').value||'13:00';state.settings.chargeT2=$('#chT2').value||'17:00';save();renderCharge();};
-$('#dashBtn').onclick=()=>{renderDash();renderCapacity();renderCharge();$('#dashModal').classList.add('open');};
-$('#tolInput').oninput=()=>{renderDash();renderCapacity();};$('#dashExport').onclick=exportDash;
+$('#dashBtn').onclick=()=>{trendTr=null;trendMotifs=null;dashPeriod=null;$('#dashPeriodSel').value='day';$('#dashRange').style.display='none';refreshDashAll();$('#dashModal').classList.add('open');};
+$('#tolInput').oninput=()=>{renderDash();renderCapacity();renderTransp();};$('#dashExport').onclick=exportDash;
 $('#importBtn').onclick=()=>{$('#importDate').value=state.currentDate;const isIn=state.flux==='in';
   $('#clientDatalist').innerHTML=knownClients().map(c=>'<option value="'+c.replace(/"/g,'&quot;')+'">').join('');
   const cf=$('#clientFilter').value;if(cf)$('#importClient').value=cf;
@@ -1301,6 +1542,13 @@ function openUnit(flux,id){
     };
   }
   $('#uPoch').style.display=isClient?'none':'';
+  // Motif de retard : visible si retard constaté/annoncé ou arrivée hors créneau
+  {const mr=$('#uMotifRow'),ms=$('#uMotif');
+   const eff=effStatus(r);
+   const show=!isClient&&(eff==='retard'||eff==='retann'||isLateArrival(r));
+   mr.style.display=show?'flex':'none';
+   if(show){ms.innerHTML=MOTIFS.map(m=>'<option value="'+m+'" '+(m===(r.motif||'')?'selected':'')+'>'+(m||'— choisir —')+'</option>').join('');
+     ms.onchange=()=>{const rr=findRow(curUnit.flux,curUnit.id);if(!rr)return;rr.motif=ms.value;if(curUnit.flux==='in')propagateIn(rr);else propagate(rr);touch();save();render();};}}
   loadUnitDocs(flux,r,isClient);
   renderUnitComments(flux,r);
   $('#unitModal').classList.add('open');
@@ -1337,6 +1585,52 @@ function renderCapTable(){
   t.innerHTML=h;
 }
 $('#slotBtn').onclick=()=>{renderCapTable();ptRefresh();$('#quaisInput').value=((state.settings&&state.settings.quais)||[]).join(', ');$('#slotsInInput').value=(state.settings&&state.settings.slotsIn)||10;$('#slotsOutInput').value=(state.settings&&state.settings.slotsOut)||10;$('#slotModal').classList.add('open');};
+/* ===== Archivage mensuel : export Excel jour par jour puis purge ===== */
+function archiveMonth(){
+  if(!session||session.role!=='admin'){alert('Réservé aux administrateurs.');return;}
+  const mo=$('#arcMonth').value; // 'YYYY-MM'
+  if(!/^\d{4}-\d{2}$/.test(mo)){alert('Choisis un mois.');return;}
+  const stat=t=>$('#arcStatus').textContent=t;
+  const fromFb=fb.enabled?
+    fb.db.ref('planning').orderByKey().startAt(mo+'-01').endAt(mo+'-31\uf8ff').once('value').then(sn=>sn.val()||{}).catch(()=>({}))
+    :Promise.resolve({});
+  stat('Collecte…');
+  fromFb.then(fbDays=>{
+    const days={};
+    Object.entries(state.days||{}).forEach(([dt,d])=>{if(dt.startsWith(mo))days[dt]=d;});
+    Object.entries(fbDays).forEach(([dt,d])=>{days[dt]=d;});
+    const dts=Object.keys(days).sort();
+    if(!dts.length){stat('');alert('Aucune journée trouvée pour '+mo+'.');return;}
+    // Export : une feuille par jour
+    const wb=XLSX.utils.book_new();
+    let tot=0;
+    dts.forEach(dt=>{
+      const day=normalizeDay(JSON.parse(JSON.stringify(days[dt])));
+      const data=[['EXPÉDITION '+dt],['CLIENT','DEPARTURE','RDV','TRANSPORTEUR','GROUPAGE','DESTINATAIRE','CR','LIVRAISON','QUAI','ARRIVÉE','CHARG','DÉPART','STATUT','MOTIF']];
+      day.rows.forEach(r=>{data.push([r.cl||'',r.departure,r.rdv,r.transporteur,r.groupage,r.destinataire,r.cr,livTxt(r),r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]||r.statut,r.motif||'']);tot++;});
+      data.push([]);data.push(['RÉCEPTION '+dt],['CLIENT','RDV','CONTENEUR','MESSAGE','SD','QTÉ','QUAI','ARRIVÉE','DÉCHARG','DÉPART','STATUT','MOTIF']);
+      day.inRows.forEach(r=>{data.push([r.cl||'',r.rdv,r.container,r.message,r.sd,r.qty,r.quai,r.arrivee,r.charg,r.depart,STATUSES[r.statut]||r.statut,r.motif||'']);tot++;});
+      const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:10},{wch:14},{wch:7},{wch:16},{wch:12},{wch:22},{wch:18},{wch:12},{wch:7},{wch:8},{wch:8},{wch:8},{wch:14},{wch:14}];
+      XLSX.utils.book_append_sheet(wb,ws,dt);
+    });
+    XLSX.writeFile(wb,'Archive_'+mo+'.xlsx');
+    stat(dts.length+' jour(s), '+tot+' ligne(s) exportées.');
+    setTimeout(()=>{
+      if(!confirm('Archive Excel téléchargée ('+dts.length+' journées).\n\nPurger maintenant ces journées de la base ?\nCette action est définitive côté planning.'))return;
+      const purgeDocs=confirm('Purger AUSSI les documents (photos CMR / BL) de ces journées ?\nOK = oui, Annuler = les conserver.');
+      dts.forEach(dt=>{
+        delete state.days[dt];
+        if(fb.enabled){
+          try{fb.db.ref('planning/'+dt).remove();}catch(e){}
+          if(purgeDocs)try{fb.db.ref('docs/'+dt).remove();}catch(e){}
+        }
+      });
+      save();render();
+      stat('✅ Mois '+mo+' archivé et purgé ('+dts.length+' journées'+(purgeDocs?' + documents':'')+').');
+    },600);
+  });
+}
+$('#arcGo').onclick=archiveMonth;
 function ptSel(){return{cl:($('#ptClient').value||'').trim().toUpperCase(),flux:$('#ptFlux').value};}
 function ptRefresh(){
   const{cl,flux}=ptSel();
@@ -1451,7 +1745,7 @@ const IN_FMT11=['Delivery Date','Time of delivery','Plant','LGORT','MESSAGE','Su
 const IN_FMT10=['Delivery Date','Time of delivery','LGORT','MESSAGE','Material','Quantity','Container No.','SD Document','Seal No.','Reference'];
 function parseInPaste(text){const lines=splitLogicalRows(text);if(!lines.length)return[];const first=lines[0].join('\t');const looksHeader=/time of delivery|container/i.test(first);if(looksHeader){const h=lines[0].map(s=>s.trim());return lines.slice(1).map(c=>{const o={};h.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}const H=lines[0].length>=11?IN_FMT11:IN_FMT10;return lines.map(c=>{const o={};H.forEach((hd,i)=>o[hd]=c[i]!==undefined?c[i]:'');return o;});}
 function importIn(records,replace,dt,cl){state.currentDate=dt;if(fb.enabled)subData();const d=dayData();const rows=buildInRows(records,cl);d.inRows=mergeInRows(d.inRows||[],rows,replace,cl);d.updated=new Date().toISOString();}
-function propagateIn(row){if(!row.groupage)return;dayData().inRows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;}});}
+function propagateIn(row){if(!row.groupage)return;dayData().inRows.forEach(r=>{if(r!==row&&r.groupage===row.groupage&&(r.cl||'')===(row.cl||'')){r.quai=row.quai;r.arrivee=row.arrivee;r.charg=row.charg;r.depart=row.depart;r.statut=row.statut;r.motif=row.motif;}});}
 function renderIn(isClient){
   const d=dayData();d.inRows=d.inRows||[];
   const scoped=scopedInRows();
@@ -1516,6 +1810,7 @@ function renderIn(isClient){
     '<div class="stat cours '+(activeFilter===''||activeFilter==='cours'?'':'dim')+'" data-flt="cours"><span class="dot"></span>En cours <b>'+c.cours+'</b></div>'+
     '<div class="stat termine '+(activeFilter===''||activeFilter==='termine'?'':'dim')+'" data-flt="termine"><span class="dot"></span>Termin\u00e9 <b>'+c.termine+'</b></div>';
 {const _rt=scopedInRows().filter(r=>{const e=effStatus(r);return e==='retard'||e==='retann';}).length;if(_rt)$('#stats').innerHTML+='<div class="stat" style="background:#fdecea;border-color:#c0392b"><span class="dot" style="background:#c0392b"></span>Retard <b>'+_rt+'</b></div>';}
+{const _cq=courQueue('in');if(_cq.length){const mx=Math.max(...(_cq.map(c=>c.wait)));$('#stats').innerHTML+='<div class="stat" style="background:'+(mx>30?'#fdecea':'#fff8e6')+';border-color:'+(mx>30?'#c0392b':'#b8860b')+'" title="'+_cq.map(c=>(c.r.container||'')+' : '+c.wait+' min').join('\n')+'"><span class="dot" style="background:'+(mx>30?'#c0392b':'#b8860b')+'"></span>🚧 Cour <b>'+_cq.length+'</b> (max '+mx+' min)</div>';}}
   $('#stats').querySelectorAll('.stat').forEach(s=>s.onclick=()=>{activeFilter=s.dataset.flt;render();});
   const totQty=all.reduce((s,r)=>s+(r.qty||0),0);
   $('#countLine').textContent=rows.length+' ligne(s) \u00b7 '+buildUnits(all).length+' conteneur(s)/r\u00e9ception(s) \u00b7 \u03a3 '+totQty+' qt\u00e9';
@@ -1523,21 +1818,22 @@ function renderIn(isClient){
   $('#syncState').innerHTML='<span class="d"></span>'+(fb.enabled?'Sync live':'Local');
 }
 function renderDashIn(){
-  $('#dashIntro').textContent='R\u00e9ception : respect des heures = heure r\u00e9elle \u2264 heure de livraison + tol\u00e9rance. Les conteneurs comptent pour 1 r\u00e9ception.';
+  $('#dashIntro').textContent=dashCLI()?'R\u00e9ception : respect des heures = heure d\'arriv\u00e9e \u2264 RDV + tol\u00e9rance. Les conteneurs comptent pour 1 r\u00e9ception.':'R\u00e9ception : respect des heures = heure r\u00e9elle \u2264 heure de livraison + tol\u00e9rance. Les conteneurs comptent pour 1 r\u00e9ception.';
   $('#dashSec1').textContent='Par cr\u00e9neau (heure de livraison)';$('#dashSec2').textContent='Par conteneur';
   const tol=parseInt($('#tolInput').value)||0;
-  const all=scopedInRows(),units=buildUnits(all);
+  const all=dashInRows(),units=buildUnits(all);
   $('#dashDate').textContent=fmtFR(state.currentDate)+(clientScope()?' — '+clientScope():' — tous clients');
+  const CLI=dashCLI();
   const g=kpiFor(units,tol);
   $('#dashCards').innerHTML=
     '<div class="card"><div class="k">R\u00e9ceptions</div><div class="v">'+g.total+'</div><div class="sub">'+all.length+' lignes \u00b7 \u03a3 '+all.reduce((s,r)=>s+(r.qty||0),0)+'</div></div>'+
     '<div class="card '+(g.presRate>=90?'good':g.presRate>=70?'warn':'bad')+'"><div class="k">Pr\u00e9sentation</div><div class="v">'+g.presRate+'%</div><div class="sub">'+g.pres+'/'+g.total+' pr\u00e9sent\u00e9s</div></div>'+
     '<div class="card"><div class="k">D\u00e9charg\u00e9s</div><div class="v">'+g.done+'</div><div class="sub">r\u00e9ceptions termin\u00e9es</div></div>'+
     '<div class="card '+(g.arrRate===null?'':g.arrRate>=90?'good':g.arrRate>=70?'warn':'bad')+'"><div class="k">Ponctualit\u00e9 arriv\u00e9e</div><div class="v">'+(g.arrRate===null?'\u2014':g.arrRate+'%')+'</div><div class="sub">arriv\u00e9e \u2264 livr.+'+tol+'</div></div>'+
-    '<div class="card '+(g.chgRate===null?'':g.chgRate>=90?'good':g.chgRate>=70?'warn':'bad')+'"><div class="k">Ponctualit\u00e9 d\u00e9chg.</div><div class="v">'+(g.chgRate===null?'\u2014':g.chgRate+'%')+'</div><div class="sub">d\u00e9chg. \u2264 livr.+'+tol+'</div></div>'+
-    '<div class="card"><div class="k">\u00c9cart moyen d\u00e9chg.</div><div class="v" style="font-size:22px">'+(g.avgDelay===null?'\u2014':(g.avgDelay>0?'+':'')+g.avgDelay+' min')+'</div><div class="sub">vs heure livraison</div></div>';
-  const head='<thead><tr><th>Groupe</th><th>R\u00e9ceptions</th><th>Pr\u00e9sentation</th><th>Ponct. arriv\u00e9e</th><th>Ponct. d\u00e9chg.</th><th>\u00c9cart moyen</th><th>D\u00e9charg\u00e9s</th></tr></thead>';
-  const row=(lbl,k)=>'<tr><td class="lbl">'+lbl+'</td><td>'+k.total+'</td><td>'+rateHtml(k.presRate)+'</td><td>'+rateHtml(k.arrRate)+'</td><td>'+rateHtml(k.chgRate)+'</td><td>'+delayHtml(k.avgDelay)+'</td><td>'+k.done+'</td></tr>';
+    (CLI?'':'<div class="card '+(g.chgRate===null?'':g.chgRate>=90?'good':g.chgRate>=70?'warn':'bad')+'"><div class="k">Ponctualit\u00e9 d\u00e9chg.</div><div class="v">'+(g.chgRate===null?'\u2014':g.chgRate+'%')+'</div><div class="sub">d\u00e9chg. \u2264 livr.+'+tol+'</div></div>')+
+    (()=>{const val=CLI?g.avgArr:g.avgDelay;return '<div class="card"><div class="k">\u00c9cart moyen '+(CLI?'arriv\u00e9e':'d\u00e9chg.')+'</div><div class="v" style="font-size:22px">'+(val===null?'\u2014':(val>0?'+':'')+val+' min')+'</div><div class="sub">'+(CLI?'vs RDV':'vs heure livraison')+'</div></div>';})();
+  const head='<thead><tr><th>Groupe</th><th>R\u00e9ceptions</th><th>Pr\u00e9sentation</th><th>Ponct. arriv\u00e9e</th>'+(CLI?'':'<th>Ponct. d\u00e9chg.</th>')+'<th>\u00c9cart moyen'+(CLI?' arriv\u00e9e':'')+'</th><th>D\u00e9charg\u00e9s</th></tr></thead>';
+  const row=(lbl,k)=>'<tr><td class="lbl">'+lbl+'</td><td>'+k.total+'</td><td>'+rateHtml(k.presRate)+'</td><td>'+rateHtml(k.arrRate)+'</td>'+(CLI?'':'<td>'+rateHtml(k.chgRate)+'</td>')+'<td>'+delayHtml(CLI?k.avgArr:k.avgDelay)+'</td><td>'+k.done+'</td></tr>';
   const bySlot={};units.forEach(u=>{const t=u.rep.rdv||'(sans)';(bySlot[t]=bySlot[t]||[]).push(u);});
   let bt=head+'<tbody>';Object.keys(bySlot).sort().forEach(t=>{bt+=row(t,kpiFor(bySlot[t],tol));});bt+='</tbody>';
   $('#dashByType').innerHTML=bt;
@@ -1554,9 +1850,9 @@ function exportInXLSX(){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Reception IN');XLSX.writeFile(wb,'Planning_IN_'+state.currentDate+'.xlsx');
 }
 function exportInDash(){
-  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(scopedInRows());
+  const tol=parseInt($('#tolInput').value)||0,units=buildUnits(dashInRows());
   const wb=XLSX.utils.book_new();
-  const mk=groups=>{const d=[['Groupe','R\u00e9ceptions','Pr\u00e9sent\u00e9s','Tx pr\u00e9sentation %','Ponct. arriv\u00e9e %','Ponct. d\u00e9chg. %','\u00c9cart moyen (min)','D\u00e9charg\u00e9s']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,k.chgRate,k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
+  const mk=groups=>{const CLI=dashCLI();const d=[['Groupe','R\u00e9ceptions','Pr\u00e9sent\u00e9s','Tx pr\u00e9sentation %','Ponct. arriv\u00e9e %',(CLI?'':'Ponct. d\u00e9chg. %'),'\u00c9cart moyen'+(CLI?' arriv\u00e9e':'')+' (min)','D\u00e9charg\u00e9s']];groups.forEach(([lbl,us])=>{const k=kpiFor(us,tol);d.push([lbl,k.total,k.pres,k.presRate,k.arrRate,CLI?'':k.chgRate,CLI?k.avgArr:k.avgDelay,k.done]);});return XLSX.utils.aoa_to_sheet(d);};
   const bySlot={};units.forEach(u=>{const t=u.rep.rdv||'(sans)';(bySlot[t]=bySlot[t]||[]).push(u);});
   const byC={};units.forEach(u=>{const t=u.rep.container||'(sans)';(byC[t]=byC[t]||[]).push(u);});
   XLSX.utils.book_append_sheet(wb,mk(Object.entries(bySlot).sort()),'Par creneau');
@@ -2291,6 +2587,10 @@ function pochInHTML(u,tplArg){
   const put=(rx,val,extra)=>{const k=pochLblRight(t,rx);if(k)ov[k]=Object.assign({t:String(val==null?'':val),w:1},extra||{});};
   put(/NUMERO REFLEX/,asn);
   put(/^TRANSPORT$/,r.message||'');
+  // Cases à cocher réelles ; Top loading coché si le transport l'indique
+  const isTop=/top/i.test(r.message||'');
+  ov['2_7']={t:'☐ Brun',w:1,a:'c'};ov['2_8']={t:'☐ Blanc',w:1,a:'c'};
+  ov['6_7']={t:(isTop?'☒':'☐')+' Top loading',w:1,a:'c',s:9};ov['6_8']={t:'☐ Vrac / Masse',w:1,a:'c',s:9};
   ov['4_7']={t:'Container :\n'+(r.container||''),w:1,s:12,a:'c'};       // valeur dans la case du libellé
   ov['9_2']={t:r.quai||'',w:1,a:'c'};ov['9_3']={t:fmtFR(state.currentDate),w:1,a:'c'};
   ov['9_4']={t:r.rdv||'',w:1,a:'c'};ov['9_5']={t:r.arrivee||'',w:1,a:'c'};ov['9_6']={t:r.depart||'',w:1,a:'c'};
@@ -2299,7 +2599,7 @@ function pochInHTML(u,tplArg){
   put(/Nombre de référence/,refs.length||'');
   {const MAX=18;ov['14_1']={t:refs.slice(0,MAX).map(x=>x.m+' ×'+x.q).join('  ·  ')+(refs.length>MAX?'  ·  … +'+(refs.length-MAX)+' réf.':''),w:1,s:8};}
   const pay=scanPayload('in',r);
-  return pochWrap('pi'+r.id,pay,scanUrl(pay),esc(r.container||''),pochFace(t,ov));
+  return pochWrap('pi'+r.id,pay,scanUrl(pay),esc(r.container||''),pochFace(t,ov,{boost:1.15}));
 }
 function printPochettes(flux,items){
   if(!items.length){alert('Aucun élément à imprimer.');return;}
@@ -2530,7 +2830,7 @@ function showUpdateBanner(nv){
   $('#updGo').onclick=()=>{location.replace(location.href.split('#')[0].split('?')[0]+'?u='+Date.now()+(location.hash||''));};
 }
 setInterval(checkUpdate,10*60*1000);
-setInterval(()=>{if(document.visibilityState!=='visible'||!session)return;if(document.querySelector('.overlay.open'))return;if(state.flux==='in'||state.flux==='out')render();},60000);
+setInterval(()=>{if(document.visibilityState!=='visible'||!session)return;bridgePublish();if(document.querySelector('.overlay.open'))return;if(state.flux==='in'||state.flux==='out')render();},60000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate();});
 setTimeout(checkUpdate,4000);
 
